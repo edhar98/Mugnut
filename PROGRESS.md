@@ -28,10 +28,10 @@ Each item was built on its own branch, reviewed by an agent that did not write i
 - **Build stamp** ([#2](https://github.com/edhar98/Mugnut/pull/2), merged): the offline cache is named after a hash of the shipped files, written by `tools/stamp.js`; a pre-commit hook, a test and a GitHub Action keep it current. Offline play is tested with the service worker on.
 - **Analytics** ([#3](https://github.com/edhar98/Mugnut/pull/3), merged): GoatCounter, site code `mugnut`, behind `ANALYTICS` in `index.html` (`""` switches it off). No third-party script, no cookies. Sends a page view and fixed event names, the screen width and the referring site's host name; only from the live host; nothing under Do Not Track / Global Privacy Control. The review caught the first version forwarding the full referring address, which could contain a challenge link; fixed before merge, with a test that reproduces it. README has a Privacy section stating exactly what is sent.
 - **Daily archive, countdown, pinned rotation** ([#4](https://github.com/edhar98/Mugnut/pull/4), merged): "Past objects" lists earlier days and lets a missed one be played once without touching the streak; the menu and result screen count down to the next object; the rotation uses a fixed pool of the first 100 objects, so new objects never change past or future days. The share text never reveals the answer.
-- **Open Graph image** ([#5](https://github.com/edhar98/Mugnut/pull/5)): `og.png`, 1200×630, rendered from the game's own art by `tools/make-og.js`.
-- **Photos in IndexedDB** ([#6](https://github.com/edhar98/Mugnut/pull/6)): sharp photos moved out of `localStorage` with a one-time background migration; broken records from old malformed links are cleaned up; link previews and the number of received challenges are capped; service worker hardening.
+- **Open Graph image** ([#5](https://github.com/edhar98/Mugnut/pull/5), merged): `og.png`, 1200×630, rendered from the game's own art by `tools/make-og.js`.
+- **Photos in IndexedDB** ([#6](https://github.com/edhar98/Mugnut/pull/6), merged): sharp photos moved out of `localStorage` with a one-time background migration; broken records from old malformed links are cleaned up; link previews and the number of received challenges are capped; service worker hardening.
 
-Suite: 127 passed, 3 skipped (offline emulation with a service worker is Chromium-only), on Pixel 7 / Chromium and iPhone 14 / WebKit.
+Suite: 135 passed, 3 skipped (offline emulation with a service worker is Chromium-only), on Pixel 7 / Chromium and iPhone 14 / WebKit. Against the live site after the last merge: 133 passed, 5 skipped.
 
 ## In progress
 - Nothing. Next is Phase 2 (content to 250+ objects, hole highlighting, Armenian and Russian, accessibility).
@@ -40,6 +40,8 @@ Suite: 127 passed, 3 skipped (offline emulation with a service worker is Chromiu
 - Nothing blocking. See `HUMAN_TODO.md` for the GoatCounter email verification.
 
 ## Backlog notes
+- Small follow-ups from the last review, none affecting stored data: the share card right after creating a challenge shows the link preview rather than the sharp photo; "Share again" can wait several seconds if IndexedDB hangs; the "See it sharp" label can show wrongly if two challenges are opened within milliseconds; `tools/make-og.js` uses Apple system fonts, so regenerate `og.png` on a Mac.
+- The GitHub Action only checks the build stamp; it does not run the Playwright suite.
 - New objects must be appended to the end of `OBJECTS`; the first 100 entries are the daily rotation and must not be reordered or removed (a test pins this).
 - Analytics is off inside a future native app (it only fires on the live web host); decide in Phase 3 whether the apps should count too.
 - No test covers a real upgrade from an old service worker to a new one (checked by hand by the reviewer).
