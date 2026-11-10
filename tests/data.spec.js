@@ -45,17 +45,17 @@ test("every level offers each answer the round can ask about, and every genus la
   expect(r.daily).toBe(true);
 });
 
-test("the daily object is defined for every day across a full cycle and beyond", async ({ page }) => {
+test("the daily object is defined every day, with no repeats within a cycle, even before day 1", async ({ page }) => {
   await page.goto("./");
-  // dailyObject() must never return undefined, including for dates before DAY0 (wrong phone clock).
-  const bad = await page.evaluate(() => {
-    const n = OBJECTS.length, seen = new Set(), bad = [];
-    for (let day = -400; day <= 400; day++) {
-      const o = OBJECTS[(((day * 37 + 11) % n) + n) % n];
-      if (!o) bad.push(day); else if (day >= 1 && day <= n) seen.add(o.name + "|" + (o.sub || ""));
-    }
-    return { bad, distinct: seen.size, n };
-  });
-  expect(bad.bad).toEqual([]);
-  expect(bad.distinct).toBe(bad.n); // 37 is coprime to 100: no repeats within a cycle
+  const n = await page.evaluate(() => OBJECTS.length);
+  const seen = new Set();
+  // Calls the real dailyObject() under a moved clock. Noon UTC is the same calendar day in the pinned zone.
+  for (let day = -5; day <= n; day++) {
+    await page.clock.setFixedTime(new Date(Date.UTC(2026, 10, 10 + day - 1, 12)));
+    const r = await page.evaluate(() => { const o = dailyObject(); return { num: dailyNum(), key: o && OBJECTS.includes(o) ? o.name + "|" + (o.sub || "") : null }; });
+    expect(r.num).toBe(day);
+    expect(r.key, `day ${day}`).not.toBeNull();
+    if (day >= 1) seen.add(r.key);
+  }
+  expect(seen.size).toBe(n);
 });

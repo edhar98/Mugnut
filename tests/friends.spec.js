@@ -150,13 +150,34 @@ test.describe("links are untrusted input", () => {
     }
   });
 
-  test("a challenge link with a non-numeric answer key is rejected", async ({ page }) => {
+  test("a challenge link with a non-integer answer key or an odd id is rejected and nothing is stored", async ({ page }) => {
     const errors = [];
     page.on("pageerror", e => errors.push(String(e)));
-    const meta = { v: 1, id: "badkey1", n: "Thing", t: "", f: "Mallory", k: "x", at: 1 };
-    await page.goto("./#c=" + b64u(JSON.stringify(meta)) + ".AAAA");
-    await expect(page.locator("#fNote")).toContainText("broken or incomplete");
-    await expect(page.locator("#feed")).not.toContainText("Thing");
+    const bad = [{ id: "badkey1", k: "x" }, { id: "badkey2", k: 1.5 }, { id: "__proto__", k: 1 }, { id: "a b<c>", k: 1 }, { id: "", k: 1 }];
+    for (const { id, k } of bad) {
+      await page.goto("./");
+      await page.goto("./#c=" + b64u(JSON.stringify({ v: 1, id, n: "Thing", t: "", f: "Mallory", k, at: 1 })) + ".AAAA");
+      await expect(page.locator("#fNote"), JSON.stringify({ id, k })).toContainText("broken or incomplete");
+      await expect(page.locator("#feed")).not.toContainText("Thing");
+    }
+    expect(await page.evaluate(() => Object.keys((JSON.parse(localStorage.getItem("mugnut:friends")) || { received: {} }).received))).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+
+  test("ids that name built-in object properties cannot reach the prototype", async ({ page }) => {
+    const errors = [];
+    page.on("pageerror", e => errors.push(String(e)));
+    for (const id of ["__proto__", "constructor", "toString"]) {
+      await page.goto("./");
+      await page.goto("./#r=" + b64u(JSON.stringify({ v: 1, id, g: 1, by: "Mallory", at: 1 })));
+      await expect(page.locator("#fNote"), id).toContainText("isn't saved on this device");
+    }
+    expect(await page.evaluate(() => [({}).guesses, Object.guesses, Object.prototype.toString.guesses].every(v => v === undefined))).toBe(true);
+    // a challenge whose id is a built-in name is an ordinary challenge, not "one of your own"
+    await page.goto("./");
+    await page.goto("./#c=" + b64u(JSON.stringify({ v: 1, id: "constructor", n: "Odd one", t: "", f: "Eve", k: 0, at: 1 })) + ".");
+    await expect(page.locator("#play")).toBeVisible();
+    await expect(page.locator("#plName")).toHaveText("Odd one");
     expect(errors).toEqual([]);
   });
 
@@ -180,6 +201,13 @@ test.describe("links are untrusted input", () => {
     await page.goto("./");
     await page.goto("./#r=" + b64u(JSON.stringify({ v: 1, id, g: 99, by: "Mallory", at: 1 })));
     await expect(page.locator("#fNote")).toContainText("broken or incomplete");
+    await expect(page.locator("#feed .guesses li")).toHaveCount(0);
+    await page.goto("./");
+    await page.goto("./#r=" + b64u(JSON.stringify({ v: 1, id, g: 1.5, by: "Mallory", at: 2 })));
+    await expect(page.locator("#fNote")).toContainText("broken or incomplete");
+    await page.reload();
+    await page.locator("#friendsBtn").click();
+    await expect(page.locator("#feed")).toContainText("Bagel");
     await expect(page.locator("#feed .guesses li")).toHaveCount(0);
     await page.goto("./");
     await page.goto("./#r=" + b64u(JSON.stringify({ v: 1, id: "nope", g: 1, by: "Mallory", at: 1 })));

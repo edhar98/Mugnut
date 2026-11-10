@@ -527,16 +527,22 @@ function dailyNum(){ const d=new Date(); return Math.round((new Date(d.getFullYe
 function dailyObject(){ const n=OBJECTS.length; return OBJECTS[(((dailyNum()*37 + 11) % n) + n) % n]; }
 function startDaily(){
   const dd = store.get("daily"), done = dd && dd.day===localDay();
-  G = {mode:"daily", deck:[dailyObject()], idx:0, score:0, lives:null, missed:[], lastLv:0, replay:done};
+  // the day and number are fixed when the object is shown, so answering after midnight still counts for that day
+  G = {mode:"daily", deck:[dailyObject()], idx:0, score:0, lives:null, missed:[], lastLv:0, replay:done, day:localDay(), num:dailyNum()};
   show("game"); renderQ();
   if(done) answer(dd.g);
 }
 function shareDaily(){
   const dd = store.get("daily") || {};
-  const text = `Mugnut #${dailyNum()} 🍩 ${dd.ok ? "✅ Got it" : "❌ It fooled me"}${dd.streak>1 ? ` · ${dd.streak}-day streak` : ""}\nIs today's object a donut?`;
+  const text = `Mugnut #${dd.num ?? dailyNum()} 🍩 ${dd.ok ? "✅ Got it" : "❌ It fooled me"}${dd.streak>1 ? ` · ${dd.streak}-day streak` : ""}\nIs today's object a donut?`;
   const done = m => { $("verdict").textContent = m; };
-  if(navigator.share){ navigator.share({text, url:APP_URL}).then(()=>done("Shared!")).catch(()=>{}); return; }
-  if(navigator.clipboard) navigator.clipboard.writeText(text + "\n" + APP_URL).then(()=>done("Result copied — paste it into any chat."), ()=>done("Couldn't copy on this device."));
+  const copy = () => {
+    const manual = () => done(`Copy this: ${text} ${APP_URL}`);
+    if(!navigator.clipboard) return manual();
+    navigator.clipboard.writeText(text + "\n" + APP_URL).then(()=>done("Result copied — paste it into any chat."), manual);
+  };
+  if(navigator.share){ navigator.share({text, url:APP_URL}).then(()=>done("Shared!")).catch(e=>{ if(!e || e.name!=="AbortError") copy(); }); return; }
+  copy();
 }
 function startLevel(lv){
   G = {mode:"level", lv, deck:shuffle(OBJECTS.filter(o=>o.lv===lv)).slice(0,10), idx:0, score:0, lives:null, missed:[], lastLv:lv};
@@ -571,8 +577,9 @@ function answer(g){
   $("opts").querySelectorAll(".opt").forEach(b=>{ const bg=+b.dataset.g; b.disabled=true; if(bg===o.g) b.classList.add("correct"); else if(bg===g) b.classList.add("wrong"); });
   if(ok) G.score++; else { G.missed.push({o,g}); if(G.lives!=null) G.lives--; }
   if(G.mode==="daily" && !G.replay){
-    const prev = store.get("daily"), yest = localDay(Date.now()-864e5);
-    store.set("daily", {day:localDay(), g, ok, streak: prev && prev.day===yest ? (prev.streak||0)+1 : 1});
+    // yesterday by the calendar, not 24 hours ago: days are 23 or 25 hours long when the clocks change
+    const prev = store.get("daily"), [y,m,d] = G.day.split("-").map(Number), yest = localDay(new Date(y, m-1, d-1));
+    store.set("daily", {day:G.day, num:G.num, g, ok, streak: prev && prev.day===yest ? (prev.streak||0)+1 : 1});
   }
   $("sc").textContent = G.score;
   if(G.lives!=null) $("hearts").textContent = "♥".repeat(G.lives) + "♡".repeat(3-G.lives);
@@ -590,7 +597,7 @@ function finish(){
   $("againBtn").textContent = G.mode==="daily" ? "Share result" : "Play again";
   if(G.mode==="daily"){
     const dd = store.get("daily") || {streak:1};
-    $("endTitle").textContent = `Today's object #${dailyNum()}`;
+    $("endTitle").textContent = `Today's object #${G.num}`;
     $("final").textContent = G.score ? "✓" : "✗";
     $("verdict").textContent = `Day streak: ${dd.streak}. A new object arrives tomorrow.`;
   } else if(G.mode==="journey"){
@@ -642,6 +649,8 @@ const hashId = id => [...id].reduce((h,c)=>(h*31 + c.charCodeAt(0))>>>0, 7);
 const hideG = (g,id) => (g + hashId(id)) % 6;          // the answer isn't readable from the link at a glance
 const showG = (k,id) => ((k - hashId(id)) % 6 + 6) % 6;
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const own = (o,k) => Object.prototype.hasOwnProperty.call(o,k) ? o[k] : undefined;   // ids come from links: never read inherited properties
+const validId = id => /^[A-Za-z0-9]{1,40}$/.test(id);
 const clean = (s,n) => String(s ?? "").replace(/[\u0000-\u001f]/g," ").trim().slice(0,n);
 
 // local data
@@ -683,16 +692,17 @@ function handleHash(raw){
       const [m, p=""] = h.slice(2).split(".");
       const x = JSON.parse(b64u.dec(m));
       const id = clean(x.id, 40);
-      if(!id) throw 0;
+      if(!validId(id)) throw 0;
       const g = showG(+x.k, id);
-      if(!(g>=0 && g<=5)) throw 0;
+      if(!Number.isInteger(g) || g<0 || g>5) throw 0;
       const d = DB.load();
-      if(d.mine[id]){ openFriends(); fNote("That's one of your own challenges."); return true; }
+      if(own(d.mine, id)){ openFriends(); fNote("That's one of your own challenges."); return true; }
       const incoming = urlToRaw(p).replace(/[^A-Za-z0-9+/=]/g,"");
-      if(d.received[id] && !d.received[id].full && incoming.length > (d.received[id].thumb||"").length){
-        d.received[id].thumb = incoming; d.received[id].mime = x.m==="w" ? "image/webp" : "image/jpeg"; DB.save(d);
+      const had = own(d.received, id);
+      if(had && !had.full && incoming.length > (had.thumb||"").length){
+        had.thumb = incoming; had.mime = x.m==="w" ? "image/webp" : "image/jpeg"; DB.save(d);
       }
-      if(!d.received[id]){
+      if(!had){
         d.received[id] = {id, name:clean(x.n,50)||"Mystery object", note:clean(x.t,160), from:clean(x.f,24)||"A friend",
           g, thumb:urlToRaw(p).replace(/[^A-Za-z0-9+/=]/g,""), mime: x.m==="w" ? "image/webp" : "image/jpeg", createdAt:+x.at||Date.now(), openedAt:Date.now(), guess:null};
         DB.save(d);
@@ -703,10 +713,10 @@ function handleHash(raw){
     if(h.startsWith("r=")){
       const x = JSON.parse(b64u.dec(h.slice(2)));
       const id = clean(x.id,40), guess = +x.g, by = clean(x.by,24) || "A friend";
-      const d = DB.load(); const c = d.mine[id];
+      const d = DB.load(); const c = validId(id) ? own(d.mine, id) : undefined;
       openFriends();
       if(!c){ fNote("That answer is for a challenge that isn't saved on this device."); return true; }
-      if(!(guess>=0 && guess<=5)) throw 0;
+      if(!Number.isInteger(guess) || guess<0 || guess>5) throw 0;
       c.guesses = (c.guesses||[]).filter(q=>!(q.by===by && q.at===x.at));
       c.guesses.push({by, guess, at:+x.at||Date.now()});
       DB.save(d); renderFeed();
@@ -938,7 +948,7 @@ $("shShort").onclick = async ()=>{
 
 // ---- play a received challenge ----
 function openPlay(id){
-  const d = DB.load(); const c = d.received[id]; if(!c) return openFriends();
+  const d = DB.load(); const c = own(d.received, id); if(!c) return openFriends();
   $("plImg").classList.remove("tiny"); delete $("plImg").dataset.ph;
   $("plImg").onload = e=>{ if(!c.full && !e.target.dataset.ph) e.target.classList.toggle("tiny", e.target.naturalWidth < 240); };
   $("plImg").src = imgSrc(c); $("plImg").alt = c.name;

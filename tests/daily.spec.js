@@ -2,7 +2,8 @@
 const { test, expect } = require("@playwright/test");
 const { watchErrors, stubSharing, lastCopied, answerCurrent } = require("./helpers");
 
-const at = (y, m, d, h = 10) => new Date(y, m - 1, d, h, 0, 0);
+// Wall-clock time in the browser's pinned zone (Asia/Yerevan, UTC+4, no DST), whatever zone the test runner is in.
+const at = (y, m, d, h = 10, min = 0) => new Date(Date.UTC(y, m - 1, d, h - 4, min, 0));
 const stored = page => page.evaluate(() => JSON.parse(localStorage.getItem("mugnut:daily")));
 
 test.beforeEach(async ({ context }) => { await stubSharing(context); });
@@ -24,7 +25,7 @@ test("play today's object, then it is locked for the rest of the day", async ({ 
   await expect(page.locator("#endTitle")).toHaveText("Today's object #3");
   await expect(page.locator("#final")).toHaveText("✓");
   await expect(page.locator("#verdict")).toContainText("Day streak: 1");
-  expect(await stored(page)).toEqual({ day: "2026-11-12", g: picked, ok: true, streak: 1 });
+  expect(await stored(page)).toEqual({ day: "2026-11-12", num: 3, g: picked, ok: true, streak: 1 });
 
   await page.locator("#homeBtn").click();
   await expect(page.locator("#dTag")).toHaveText("✓ Done · streak 1");
@@ -37,7 +38,7 @@ test("play today's object, then it is locked for the rest of the day", async ({ 
   await expect(page.locator(`#opts .opt[data-g="${picked}"]`)).toHaveClass(/correct/);
   await expect(page.locator("#fb")).toBeVisible();
   await page.locator(`#opts .opt[data-g="${(picked + 1) % 6}"]`).click({ force: true }).catch(() => {});
-  expect(await stored(page)).toEqual({ day: "2026-11-12", g: picked, ok: true, streak: 1 });
+  expect(await stored(page)).toEqual({ day: "2026-11-12", num: 3, g: picked, ok: true, streak: 1 });
 
   // Still locked after a reload.
   await page.reload();
@@ -113,4 +114,75 @@ test("sharing the daily result never reveals the answer", async ({ page }) => {
   expect(text.toLowerCase()).not.toContain(o.name.toLowerCase());
   expect(text.toLowerCase()).not.toContain(o.shape.toLowerCase());
   expect(text.toLowerCase()).not.toContain("genus");
+});
+
+test("an object opened before midnight and answered after it still counts for the day it was shown", async ({ page }) => {
+  await page.clock.setFixedTime(at(2026, 11, 12, 23, 59));
+  await page.goto("./");
+  await page.locator("#dailyBtn").click();
+  const shown = await page.locator("#name").textContent();
+  await page.clock.setFixedTime(at(2026, 11, 13, 0, 1));
+  await answerCurrent(page, true);
+  await page.locator("#nextBtn").click();
+  await expect(page.locator("#endTitle")).toHaveText("Today's object #3");
+  expect(await stored(page)).toMatchObject({ day: "2026-11-12", num: 3, streak: 1 });
+  await page.locator("#againBtn").click();
+  expect(await lastCopied(page)).toContain("Mugnut #3");
+
+  // the 13th has its own, still unplayed object, and playing it continues the streak
+  await page.locator("#homeBtn").click();
+  await expect(page.locator("#dTag")).toHaveText("#4");
+  await page.locator("#dailyBtn").click();
+  await expect(page.locator("#name")).not.toHaveText(shown);
+  await expect(page.locator("#opts .opt:disabled")).toHaveCount(0);
+  await answerCurrent(page, true);
+  expect(await stored(page)).toMatchObject({ day: "2026-11-13", num: 4, streak: 2 });
+});
+
+test("share result falls back to showing the text when nothing can copy or share", async ({ page }) => {
+  await page.addInitScript(() => { try { Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true }); } catch (e) {} });
+  await page.clock.setFixedTime(at(2026, 11, 12));
+  await page.goto("./");
+  await page.locator("#dailyBtn").click();
+  await answerCurrent(page, false);
+  await page.locator("#nextBtn").click();
+  await page.locator("#againBtn").click();
+  await expect(page.locator("#verdict")).toContainText("Copy this: Mugnut #3");
+});
+
+test.describe("where the clocks change", () => {
+  test.use({ timezoneId: "Europe/Berlin" });
+  // Berlin wall-clock instants: CET is UTC+1, CEST is UTC+2.
+  const berlin = (y, m, d, h, min, offset) => new Date(Date.UTC(y, m - 1, d, h - offset, min, 0));
+  const play = async page => {
+    await page.locator("#dailyBtn").click();
+    await answerCurrent(page, true);
+    await page.locator("#nextBtn").click();
+    await expect(page.locator("#end")).toBeVisible();
+    await page.locator("#homeBtn").click();
+  };
+
+  test("the streak survives the 23-hour day in spring", async ({ page }) => {
+    await page.clock.setFixedTime(berlin(2027, 3, 28, 12, 0, 2)); // clocks went forward at 02:00 this morning
+    await page.goto("./");
+    const n = Number((await page.locator("#dTag").textContent()).slice(1));
+    await play(page);
+    await page.clock.setFixedTime(berlin(2027, 3, 29, 0, 30, 2));
+    await page.reload();
+    await expect(page.locator("#dTag")).toHaveText("#" + (n + 1));
+    await play(page);
+    expect(await stored(page)).toMatchObject({ day: "2027-03-29", num: n + 1, streak: 2 });
+  });
+
+  test("the streak survives the 25-hour day in autumn", async ({ page }) => {
+    await page.clock.setFixedTime(berlin(2027, 10, 30, 12, 0, 2));
+    await page.goto("./");
+    const n = Number((await page.locator("#dTag").textContent()).slice(1));
+    await play(page);
+    await page.clock.setFixedTime(berlin(2027, 10, 31, 23, 30, 1)); // clocks went back at 03:00 this morning
+    await page.reload();
+    await expect(page.locator("#dTag")).toHaveText("#" + (n + 1));
+    await play(page);
+    expect(await stored(page)).toMatchObject({ day: "2027-10-31", num: n + 1, streak: 2 });
+  });
 });
