@@ -1,7 +1,9 @@
 // Smoke suite for the no-build web version, run at phone viewports.
 const { defineConfig, devices } = require("@playwright/test");
 
-const PORT = 4173;
+// Each checkout gets its own port, and a server already on it is never reused:
+// otherwise a second copy of the repository (a worktree under review, say) could be the one that gets tested.
+const PORT = 4200 + [...__dirname].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 700, 7);
 // MUGNUT_URL=https://edhar98.github.io/Mugnut/ npx playwright test   runs the same suite against a deployed copy.
 const LIVE = process.env.MUGNUT_URL;
 
@@ -27,6 +29,6 @@ module.exports = defineConfig({
   webServer: LIVE ? undefined : {
     command: `npx http-server . -p ${PORT} -a 127.0.0.1 -c-1 --silent`,
     url: `http://127.0.0.1:${PORT}/index.html`,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
   },
 });

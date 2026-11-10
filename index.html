@@ -522,16 +522,24 @@ function el(tag, props={}, ...kids){ const e=document.createElement(tag); Object
 const lvChipHTML = lv => `<span class="chip" style="background:${LEVELS[lv].c}">${LEVELS[lv].n}</span>`;
 
 // ---------- analytics ----------
-// Anonymous, cookieless counts through GoatCounter: a page view and a few fixed event names, nothing else.
-// No ids, no names, no link contents, no photos; nothing is stored on the device. Set ANALYTICS to "" to switch it off.
+// Anonymous, cookieless counts through GoatCounter: a page view and a few fixed event names.
+// Sent with each: the fixed name, the screen width, and for the page view the host name (only) of the referring site.
+// Never sent: ids, names, answers, photos, the page address or its link data. Nothing is stored on the device.
+// Set ANALYTICS to "" to switch it off.
 const ANALYTICS = "mugnut";   // GoatCounter site code (https://<code>.goatcounter.com)
+const ANALYTICS_HOSTS = ["edhar98.github.io"];   // counted only where the real game is served: not on local servers, previews or copies
+// event: one of the fixed names, or "/" for the page view
 function track(event){
   try{
-    if(!ANALYTICS || !/^https?:$/.test(location.protocol)) return;
-    if(/(^localhost$|\.localhost$|\.test$|^127\.|^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\.|^0\.0\.0\.0$|^\[?::1\]?$)/.test(location.hostname)) return;   // not while developing
+    if(!ANALYTICS || !event || location.protocol!=="https:" || !ANALYTICS_HOSTS.includes(location.hostname)) return;
     if(navigator.doNotTrack==="1" || navigator.globalPrivacyControl) return;
-    const q = new URLSearchParams({p: event || "/", t: event || "Mugnut", s: String(screen.width), rnd: Math.random().toString(36).slice(2,7)});
-    if(event) q.set("e", "true"); else if(document.referrer) q.set("r", document.referrer);
+    const q = new URLSearchParams({p: event, t: event==="/" ? "Mugnut" : event, s: String(screen.width), rnd: Math.random().toString(36).slice(2,7)});
+    if(event!=="/") q.set("e", "true");
+    else {
+      // host name only: a referring address can carry private data, even a whole challenge link, in its query string
+      let from = ""; try{ from = new URL(document.referrer).hostname; }catch(e){}
+      if(from && from!==location.hostname) q.set("r", from);
+    }
     if(navigator.webdriver) q.set("b", "153");   // automated browsers are marked so they are not counted as people
     const url = `https://${ANALYTICS}.goatcounter.com/count?${q}`;
     if(!(navigator.sendBeacon && navigator.sendBeacon(url))) new Image().src = url;
@@ -576,22 +584,23 @@ function dailyObject(num=dailyNum()){ const n=DAILY_POOL; return OBJECTS[(((num*
 const dailyLog = {
   all(){ const l = store.get("daily-log"); return l && typeof l==="object" && !Array.isArray(l) ? l : {}; },
   get(num){ const l = dailyLog.all(), e = Object.prototype.hasOwnProperty.call(l, num) ? l[num] : null; return e && Number.isInteger(e.g) && e.g>=0 && e.g<=5 ? e : null; },
-  set(num, g, ok){ const l = dailyLog.all(); l[num] = {g, ok}; store.set("daily-log", l); },
+  set(num, g, ok){ if(!Number.isInteger(num) || num<1 || !Number.isInteger(g) || g<0 || g>5) return; const l = dailyLog.all(); l[num] = {g, ok:!!ok}; store.set("daily-log", l); },
 };
 // answers given before the archive existed
 (function(){ const dd = store.get("daily"); if(!dd || typeof dd.day!=="string") return;
   const [y,m,d] = dd.day.split("-").map(Number), num = Number.isInteger(dd.num) ? dd.num : dayNumOf(new Date(y, m-1, d));
-  if(Number.isInteger(num) && Number.isInteger(dd.g) && !dailyLog.get(num)) dailyLog.set(num, dd.g, !!dd.ok); })();
+  if(Number.isInteger(num) && num>=1 && num<=dailyNum() && Number.isInteger(dd.g) && dd.g>=0 && dd.g<=5 && !dailyLog.get(num)) dailyLog.set(num, dd.g, !!dd.ok); })();
 // num: a past day number from the archive; omitted for today's object
 function startDaily(num){
-  const today = dailyNum(), archive = Number.isInteger(num) && num < today;
+  const today = dailyNum(), archive = Number.isInteger(num) && num >= 1 && num < today;
   if(!archive) num = today;
-  const dd = store.get("daily"), past = dailyLog.get(num);
-  const done = archive ? !!past : !!(dd && dd.day===localDay());
+  // the log is the record of what was answered; an answered day stays answered whatever the clock says now
+  const dd = store.get("daily"), past = dailyLog.get(num) || (!archive && dd && dd.day===localDay() && Number.isInteger(dd.g) ? dd : null);
+  const done = !!past;
   // the day and number are fixed when the object is shown, so answering after midnight still counts for that day
   G = {mode:"daily", archive, deck:[dailyObject(num)], idx:0, score:0, lives:null, missed:[], lastLv:0, replay:done, day:localDay(), num};
   show("game"); renderQ();
-  if(done) answer(archive ? past.g : dd.g);
+  if(done) answer(past.g);
 }
 function shareDaily(){
   const dd = store.get("daily") || {};
@@ -636,6 +645,8 @@ function renderQ(){
   optionButtons($("opts"), answer);
 }
 function answer(g){
+  // answered meanwhile somewhere else (another tab, or from the archive): show that answer, it cannot be changed
+  if(G.mode==="daily" && !G.replay){ const rec = dailyLog.get(G.num); if(rec){ G.replay = true; g = rec.g; } }
   const o = G.deck[G.idx], ok = g===o.g;
   $("opts").querySelectorAll(".opt").forEach(b=>{ const bg=+b.dataset.g; b.disabled=true; if(bg===o.g) b.classList.add("correct"); else if(bg===g) b.classList.add("wrong"); });
   if(ok) G.score++; else { G.missed.push({o,g}); if(G.lives!=null) G.lives--; }
@@ -661,15 +672,18 @@ function finish(){
   const total = G.deck.length;
   $("final").textContent = `${G.score}/${total}`;
   $("againBtn").textContent = G.mode!=="daily" ? "Play again" : G.archive ? "Back to past objects" : "Share result";
-  delete $("verdict").dataset.countdown;
+  delete $("verdict").dataset.countdown; delete $("verdict").dataset.until; delete $("verdict").dataset.after;
   if(G.mode!=="daily") track("round-finish-" + (G.mode==="journey" ? "journey" : "level-"+G.lv));
   if(G.mode==="daily"){
     const dd = store.get("daily") || {streak:1};
     $("endTitle").textContent = G.archive ? `Object #${G.num} · ${shortDate(dateOfNum(G.num))}` : `Today's object #${G.num}`;
     $("final").textContent = G.score ? "✓" : "✗";
     if(G.archive) $("verdict").textContent = "From the archive. Past objects don't change your streak.";
-    else if(G.num===dailyNum()){ $("verdict").dataset.countdown = `Day streak: ${dd.streak}. Next object in `; tick(); }
-    else $("verdict").textContent = `Day streak: ${dd.streak}. A new object is waiting.`;
+    else {
+      const v = $("verdict"), waiting = `Day streak: ${dd.streak}. A new object is waiting.`;
+      if(G.num===dailyNum()){ v.dataset.countdown = `Day streak: ${dd.streak}. Next object in `; v.dataset.until = localDay(); v.dataset.after = waiting; tick(); }
+      else v.textContent = waiting;
+    }
   } else if(G.mode==="journey"){
     const reached = G.deck[Math.min(G.idx, total-1)].lv;
     $("endTitle").textContent = G.lives===0 ? "Journey over" : "Journey complete!";
@@ -702,7 +716,11 @@ function tick(){
   // the day rolled over while the menu was open: show the new object
   if(tickDay && tickDay!==today && !$("home").classList.contains("hidden")){ tickDay = today; return renderHome(); }
   tickDay = today;
-  document.querySelectorAll("[data-countdown]").forEach(e=>{ if(e.dataset.countdown) e.textContent = e.dataset.countdown + untilTomorrow() + "."; else if(e.id==="dNext") e.textContent = ""; });
+  document.querySelectorAll("[data-countdown]").forEach(e=>{
+    // counting down to a day that has now arrived: say so instead of starting on the next 24 hours
+    if(e.dataset.until && e.dataset.until!==today){ e.textContent = e.dataset.after || ""; delete e.dataset.countdown; delete e.dataset.until; return; }
+    if(e.dataset.countdown) e.textContent = e.dataset.countdown + untilTomorrow() + "."; else if(e.id==="dNext") e.textContent = "";
+  });
 }
 setInterval(tick, 1000);
 
@@ -1112,7 +1130,7 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
 }
 
 renderHome();
-track();   // one page view; the link hash (challenge data) is never sent
+track("/");   // one page view per load; the address and its link data are never sent
 consumeHash();
 
 </script>
