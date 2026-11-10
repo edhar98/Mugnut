@@ -1,0 +1,23 @@
+# tooling
+node_modules/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+dist/
+.DS_Store
+
+# secrets and signing material: never commit
+.env
+.env.*
+*.keystore
+*.jks
+*.p12
+*.p8
+*.pem
+*.key
+*.mobileprovision
+*.cer
+keystore.properties
+google-services.json
+GoogleService-Info.plist
