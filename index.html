@@ -501,16 +501,24 @@ function el(tag, props={}, ...kids){ const e=document.createElement(tag); Object
 const lvChipHTML = lv => `<span class="chip" style="background:${LEVELS[lv].c}">${LEVELS[lv].n}</span>`;
 
 // ---------- analytics ----------
-// Anonymous, cookieless counts through GoatCounter: a page view and a few fixed event names, nothing else.
-// No ids, no names, no link contents, no photos; nothing is stored on the device. Set ANALYTICS to "" to switch it off.
+// Anonymous, cookieless counts through GoatCounter: a page view and a few fixed event names.
+// Sent with each: the fixed name, the screen width, and for the page view the host name (only) of the referring site.
+// Never sent: ids, names, answers, photos, the page address or its link data. Nothing is stored on the device.
+// Set ANALYTICS to "" to switch it off.
 const ANALYTICS = "mugnut";   // GoatCounter site code (https://<code>.goatcounter.com)
+const ANALYTICS_HOSTS = ["edhar98.github.io"];   // counted only where the real game is served: not on local servers, previews or copies
+// event: one of the fixed names, or "/" for the page view
 function track(event){
   try{
-    if(!ANALYTICS || !/^https?:$/.test(location.protocol)) return;
-    if(/(^localhost$|\.localhost$|\.test$|^127\.|^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\.|^0\.0\.0\.0$|^\[?::1\]?$)/.test(location.hostname)) return;   // not while developing
+    if(!ANALYTICS || !event || location.protocol!=="https:" || !ANALYTICS_HOSTS.includes(location.hostname)) return;
     if(navigator.doNotTrack==="1" || navigator.globalPrivacyControl) return;
-    const q = new URLSearchParams({p: event || "/", t: event || "Mugnut", s: String(screen.width), rnd: Math.random().toString(36).slice(2,7)});
-    if(event) q.set("e", "true"); else if(document.referrer) q.set("r", document.referrer);
+    const q = new URLSearchParams({p: event, t: event==="/" ? "Mugnut" : event, s: String(screen.width), rnd: Math.random().toString(36).slice(2,7)});
+    if(event!=="/") q.set("e", "true");
+    else {
+      // host name only: a referring address can carry private data, even a whole challenge link, in its query string
+      let from = ""; try{ from = new URL(document.referrer).hostname; }catch(e){}
+      if(from && from!==location.hostname) q.set("r", from);
+    }
     if(navigator.webdriver) q.set("b", "153");   // automated browsers are marked so they are not counted as people
     const url = `https://${ANALYTICS}.goatcounter.com/count?${q}`;
     if(!(navigator.sendBeacon && navigator.sendBeacon(url))) new Image().src = url;
@@ -1029,7 +1037,7 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
 }
 
 renderHome();
-track();   // one page view; the link hash (challenge data) is never sent
+track("/");   // one page view per load; the address and its link data are never sent
 consumeHash();
 
 </script>

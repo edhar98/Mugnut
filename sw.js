@@ -1,6 +1,6 @@
 // Mugnut service worker: makes the game work offline.
 // BUILD is a hash of the cached files, written by tools/stamp.js (run by the pre-commit hook). Never edit it by hand.
-const BUILD = "de831592b9";
+const BUILD = "a33b724df4";
 const CACHE = "mugnut-" + BUILD;
 const FILES = ["./", "index.html", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/maskable-512.png", "icons/apple-touch-icon.png"];
