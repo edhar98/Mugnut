@@ -44,10 +44,12 @@
   .stack{display:grid;gap:12px}
   .mode{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;cursor:pointer;color:var(--ink)}
   .mode .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .mode .row h3{min-width:0}
+  .mode .row .tag{flex:none;white-space:nowrap}
   .mode p{margin:4px 0 0;color:var(--muted);font-size:14px}
   .tag{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
   .levels{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
-  .lvbtn{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;text-align:left;cursor:pointer;color:var(--ink)}
+  .lvbtn{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;text-align:left;cursor:pointer;color:var(--ink);min-width:0;overflow-wrap:anywhere}
   .lvbtn b{display:block;font-size:15px}
   .lvbtn small{color:var(--muted);font-size:12px}
   .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:1px}
@@ -55,6 +57,8 @@
   summary{cursor:pointer;font-weight:600;color:var(--accent)}
   .rules{margin:10px 0 0;padding-left:20px;line-height:1.5}
   .rules li{margin-bottom:6px}
+  .langrow{display:flex;align-items:center;gap:8px;margin-top:18px;font-size:14px;color:var(--muted)}
+  .langrow select{font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 8px;max-width:100%}
   .top{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--muted);margin-bottom:8px;gap:8px}
   .top b{color:var(--ink)}
   .chip{display:inline-flex;align-items:center;font-size:12px;font-weight:700;padding:4px 9px;border-radius:999px;color:#fff;letter-spacing:.02em}
@@ -72,6 +76,7 @@
   .opt{display:flex;align-items:center;gap:8px;background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:8px 10px;cursor:pointer;font-weight:500;font-size:15px;color:var(--ink);text-align:left}
   .opt svg{width:52px;height:30px;flex:none}
   .opt small{display:block;color:var(--muted);font-weight:400;font-size:12px}
+  .opt span{min-width:0;overflow-wrap:anywhere}
   .opt.correct{border-color:var(--good);background:var(--goodbg)}
   .opt.wrong{border-color:var(--bad);background:var(--badbg)}
   .opt.sel{border-color:var(--ink);background:#eef1f7}
@@ -87,18 +92,21 @@
   .review li{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:15px}
   .review li:last-child{border-bottom:0}
   .review li em{font-style:normal;color:var(--muted);text-align:right}
+  .review li span{min-width:0;overflow-wrap:anywhere}
+  .review li em{flex:none;max-width:60%}
   .interlude{text-align:center;padding:40px 10px}
   .interlude .big{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:40px;font-weight:600;margin:10px 0}
   .back{display:flex;align-items:center;gap:6px;margin-bottom:8px}
   .note{font-size:14px;color:var(--muted);background:#fff;border:1px dashed var(--line);border-radius:12px;padding:12px;line-height:1.45}
   .sect{margin:22px 0 10px;display:flex;justify-content:space-between;align-items:baseline}
   .ch{margin-bottom:14px}
-  .ch .meta{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin:10px 2px 0}
+  .ch .meta{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--muted);margin:10px 2px 0}
+  .ch .meta .link{flex:none}
   .ch .title{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:20px;font-weight:600;margin:4px 2px 0}
   .ch .opts{margin-top:12px}
   .result{margin-top:12px;border-radius:12px;padding:12px;font-size:15px;line-height:1.45}
   .guesses{list-style:none;padding:0;margin:10px 0 0;font-size:14px}
-  .guesses li{display:flex;justify-content:space-between;padding:6px 0;border-top:1px dashed var(--line)}
+  .guesses li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px dashed var(--line)}
   .streak{display:flex;gap:12px;align-items:center}
   .streak .n{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:34px;font-weight:600;line-height:1}
   label.field{display:block;font-weight:600;margin:16px 0 6px}
@@ -112,6 +120,7 @@
   .arlist{display:grid;gap:8px}
   .arrow{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;cursor:pointer;color:var(--ink);font-size:15px}
   .arrow b{font-weight:600}
+  .arrow > span:first-child{min-width:0;overflow-wrap:anywhere}
   .arrow small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
   .arrow .st{flex:none;font-weight:600;color:var(--accent)}
   .arrow .st.good{color:var(--good)} .arrow .st.bad{color:var(--bad)}
@@ -129,39 +138,41 @@
 <!-- HOME -->
 <section id="home">
   <h1>Mugnut</h1>
-  <p class="muted" style="margin:0 0 18px">To a topologist, a coffee mug and a donut are the same thing. <span id="objCount">100</span> objects, 4 levels — can you see the world that way?</p>
+  <p class="muted" style="margin:0 0 18px"><span data-t="home.intro">To a topologist, a coffee mug and a donut are the same thing.</span> <span id="objCount">100</span> <span id="objRest">objects, 4 levels — can you see the world that way?</span></p>
   <div class="stack">
     <button class="mode" id="dailyBtn">
-      <div class="row"><h3>Today's object</h3><span class="tag" id="dTag"></span></div>
-      <p>One object a day, the same for everyone. Guess it, then dare a friend.</p>
+      <div class="row"><h3 data-t="home.daily.h">Today's object</h3><span class="tag" id="dTag"></span></div>
+      <p data-t="home.daily.p">One object a day, the same for everyone. Guess it, then dare a friend.</p>
     </button>
-    <div class="under hidden" id="archiveRow"><span class="muted" id="dNext"></span><button class="link" id="archiveBtn">Past objects</button></div>
+    <div class="under hidden" id="archiveRow"><span class="muted" id="dNext"></span><button class="link" id="archiveBtn" data-t="archive.title">Past objects</button></div>
     <button class="mode" id="journeyBtn">
-      <div class="row"><h3>Journey</h3><span class="tag" id="jBest"></span></div>
-      <p>Start easy and climb to expert. 24 objects, 3 lives.</p>
+      <div class="row"><h3 data-t="home.journey.h">Journey</h3><span class="tag" id="jBest"></span></div>
+      <p data-t="home.journey.p">Start easy and climb to expert. 24 objects, 3 lives.</p>
     </button>
     <div class="mode" style="cursor:default">
-      <div class="row"><h3>Pick a level</h3><span class="tag">10 objects</span></div>
+      <div class="row"><h3 data-t="home.level.h">Pick a level</h3><span class="tag" data-t="home.ten">10 objects</span></div>
       <div class="levels" id="levelBtns"></div>
     </div>
     <div class="mode hidden" id="packsCard" style="cursor:default">
-      <div class="row"><h3>Packs</h3><span class="tag">10 objects</span></div>
+      <div class="row"><h3 data-t="home.packs.h">Packs</h3><span class="tag" data-t="home.ten">10 objects</span></div>
       <div class="levels" id="packBtns"></div>
     </div>
     <button class="mode" id="friendsBtn">
-      <div class="row"><h3>Challenge a friend</h3><span class="tag" id="fTag">Daily</span></div>
-      <p>Snap an object around you, set its topology, and see if your friends get it.</p>
+      <div class="row"><h3 data-t="home.friends.h">Challenge a friend</h3><span class="tag" id="fTag" data-t="home.friends.tag">Daily</span></div>
+      <p data-t="home.friends.p">Snap an object around you, set its topology, and see if your friends get it.</p>
     </button>
   </div>
   <details>
-    <summary>How it works</summary>
+    <summary data-t="home.how">How it works</summary>
     <ol class="rules">
-      <li>Imagine each object is made of perfectly stretchy clay.</li>
-      <li>You may bend, stretch and squash it — never tear it or glue parts together.</li>
-      <li>Count the holes that go <b>all the way through</b>. That's the <b>genus</b>: sphere 0, torus 1, double torus 2…</li>
-      <li>Dents don't count. Something with <i>n</i> openings into one hollow space (a shirt, a pipe) has genus <i>n</i> − 1.</li>
+      <li data-t="rules.1">Imagine each object is made of perfectly stretchy clay.</li>
+      <li data-t="rules.2">You may bend, stretch and squash it — never tear it or glue parts together.</li>
+      <li data-t-html="rules.3">Count the holes that go <b>all the way through</b>. That's the <b>genus</b>: sphere 0, torus 1, double torus 2…</li>
+      <li data-t-html="rules.4">Dents don't count. Something with <i>n</i> openings into one hollow space (a shirt, a pipe) has genus <i>n</i> − 1.</li>
     </ol>
   </details>
+  <div class="langrow"><label for="langSel" data-t="lang.label">Language</label>
+    <select id="langSel"><option value="en" lang="en">English</option><option value="hy" lang="hy">Հայերեն</option><option value="ru" lang="ru">Русский</option></select></div>
 </section>
 
 <!-- INTERLUDE -->
@@ -170,7 +181,7 @@
     <span class="chip" id="ilChip"></span>
     <div class="big" id="ilTitle"></div>
     <p class="muted" id="ilText"></p>
-    <button class="btn" id="ilGo" style="margin-top:20px">Let's go</button>
+    <button class="btn" id="ilGo" style="margin-top:20px" data-t="il.go">Let's go</button>
   </div>
 </section>
 
@@ -178,7 +189,7 @@
 <section id="game" class="hidden">
   <div class="top">
     <span><span class="chip" id="lvChip"></span> &nbsp;<b id="num">1</b>/<b id="tot">10</b></span>
-    <span><span class="hearts" id="hearts"></span> &nbsp;Score <b id="sc">0</b></span>
+    <span><span class="hearts" id="hearts"></span> &nbsp;<span data-t="game.score">Score</span> <b id="sc">0</b></span>
   </div>
   <div class="bar"><i id="prog" style="width:0"></i></div>
   <div class="card">
@@ -186,10 +197,10 @@
     <div class="name" id="name"></div>
     <div class="sub" id="sub"></div>
   </div>
-  <div class="q">What is it, topologically?</div>
+  <div class="q" data-t="game.q">What is it, topologically?</div>
   <div class="opts" id="opts"></div>
   <div class="fb" id="fb"><strong id="fbTitle"></strong><p id="fbText"></p><p class="marknote hidden" id="fbMarks"></p><button class="btn" id="nextBtn">Next</button></div>
-  <div style="text-align:center;margin-top:12px"><button class="link" id="quitBtn">Quit to menu</button></div>
+  <div style="text-align:center;margin-top:12px"><button class="link" id="quitBtn" data-t="game.quit">Quit to menu</button></div>
 </section>
 
 <!-- END -->
@@ -197,94 +208,94 @@
   <h2 style="text-align:center;margin-top:10px" id="endTitle">Round complete</h2>
   <div class="score" id="final"></div>
   <p class="muted" style="text-align:center;margin-top:0" id="verdict"></p>
-  <div class="card" id="reviewCard"><strong>Worth another look</strong><ul class="review" id="review"></ul></div>
+  <div class="card" id="reviewCard"><strong data-t="end.review">Worth another look</strong><ul class="review" id="review"></ul></div>
   <div class="stack" style="margin-top:18px">
     <button class="btn" id="againBtn">Play again</button>
-    <button class="btn ghost" id="homeBtn">Menu</button>
+    <button class="btn ghost" id="homeBtn" data-t="end.menu">Menu</button>
   </div>
 </section>
 
 <!-- DAILY ARCHIVE -->
 <section id="archive" class="hidden">
-  <div class="back"><button class="link" data-home>← Menu</button></div>
-  <h2>Past objects</h2>
+  <div class="back"><button class="link" data-home data-t="nav.menu">← Menu</button></div>
+  <h2 data-t="archive.title">Past objects</h2>
   <p class="muted" style="margin-top:0" id="arSummary"></p>
   <div class="arlist" id="arList"></div>
 </section>
 
 <!-- FRIENDS -->
 <section id="friends" class="hidden">
-  <div class="back"><button class="link" data-home>← Menu</button></div>
-  <h2>Friend challenges</h2>
+  <div class="back"><button class="link" data-home data-t="nav.menu">← Menu</button></div>
+  <h2 data-t="friends.title">Friend challenges</h2>
   <div class="card streak">
     <div class="n" id="streakN">0</div>
-    <div style="flex:1"><b>day streak</b><div class="muted" style="font-size:14px" id="streakText"></div></div>
+    <div style="flex:1"><b id="streakLbl">day streak</b><div class="muted" style="font-size:14px" id="streakText"></div></div>
   </div>
   <div style="margin-top:12px" class="stack">
-    <button class="btn" id="newChBtn">＋ New photo challenge</button>
+    <button class="btn" id="newChBtn" data-t="friends.new">＋ New photo challenge</button>
   </div>
   <div class="note hidden" id="fNote" style="margin-top:12px"></div>
   <div id="feed"></div>
   <details style="margin-top:18px">
-    <summary>Got a link on another device?</summary>
-    <p class="muted" style="font-size:14px">Paste a challenge or answer link here.</p>
+    <summary data-t="friends.paste.sum">Got a link on another device?</summary>
+    <p class="muted" style="font-size:14px" data-t="friends.paste.p">Paste a challenge or answer link here.</p>
     <input type="text" id="pasteIn" placeholder="https://…#c=…">
-    <button class="btn small" id="pasteBtn" style="margin-top:8px">Open</button>
+    <button class="btn small" id="pasteBtn" style="margin-top:8px" data-t="friends.paste.open">Open</button>
   </details>
 </section>
 
 <!-- CREATE -->
 <section id="create" class="hidden">
-  <div class="back"><button class="link" id="createBack">← Challenges</button></div>
-  <h2>New photo challenge</h2>
-  <p class="muted" style="margin-top:0">Find an object around you, snap it, and tell us its topology.</p>
+  <div class="back"><button class="link" id="createBack" data-t="nav.challenges">← Challenges</button></div>
+  <h2 data-t="create.title">New photo challenge</h2>
+  <p class="muted" style="margin-top:0" data-t="create.intro">Find an object around you, snap it, and tell us its topology.</p>
   <div class="photoBtns" id="photoBtns">
-    <label class="filebtn">📷&nbsp; Take photo<input type="file" accept="image/*" capture="environment" id="camIn"></label>
-    <label class="filebtn">🖼&nbsp; From gallery<input type="file" accept="image/*" id="galIn"></label>
+    <label class="filebtn">📷&nbsp; <span data-t="create.take">Take photo</span><input type="file" accept="image/*" capture="environment" id="camIn"></label>
+    <label class="filebtn">🖼&nbsp; <span data-t="create.gallery">From gallery</span><input type="file" accept="image/*" id="galIn"></label>
   </div>
-  <div class="card hidden" id="previewCard" style="padding:8px"><div class="pic"><img id="preview" alt="Your photo"></div>
-    <div style="text-align:center"><button class="link" id="retake">Change photo</button></div></div>
-  <label class="field" for="chName">What is it?</label>
-  <input type="text" id="chName" maxlength="50" placeholder="e.g. My keyring">
-  <label class="field">What's its topology?</label>
+  <div class="card hidden" id="previewCard" style="padding:8px"><div class="pic"><img id="preview" alt="Your photo" data-t-alt="create.alt"></div>
+    <div style="text-align:center"><button class="link" id="retake" data-t="create.change">Change photo</button></div></div>
+  <label class="field" for="chName" data-t="create.name.l">What is it?</label>
+  <input type="text" id="chName" maxlength="50" placeholder="e.g. My keyring" data-t-ph="create.name.ph">
+  <label class="field" data-t="create.topo.l">What's its topology?</label>
   <div class="opts" id="chOpts"></div>
-  <label class="field" for="chNote">Explain your answer <span class="muted" style="font-weight:400">(shown after they guess)</span></label>
-  <textarea id="chNote" maxlength="160" placeholder="e.g. The ring and the loop on the clip are holes."></textarea>
-  <label class="field" for="myName">Your name</label>
-  <input type="text" id="myName" maxlength="24" placeholder="So friends know who sent it">
+  <label class="field" for="chNote"><span data-t="create.note.l">Explain your answer</span> <span class="muted" style="font-weight:400" data-t="create.note.hint">(shown after they guess)</span></label>
+  <textarea id="chNote" maxlength="160" placeholder="e.g. The ring and the loop on the clip are holes." data-t-ph="create.note.ph"></textarea>
+  <label class="field" for="myName" data-t="create.me.l">Your name</label>
+  <input type="text" id="myName" maxlength="24" placeholder="So friends know who sent it" data-t-ph="create.me.ph">
   <div class="err" id="chErr"></div>
-  <button class="btn" id="postBtn" style="margin-top:6px">Create challenge</button>
+  <button class="btn" id="postBtn" style="margin-top:6px" data-t="create.post">Create challenge</button>
 </section>
 
 <!-- SHARE (after creating, or sending an answer back) -->
 <section id="share" class="hidden">
-  <div class="back"><button class="link" id="shareBack">← Challenges</button></div>
+  <div class="back"><button class="link" id="shareBack" data-t="nav.challenges">← Challenges</button></div>
   <h2 id="shTitle">Send it to a friend</h2>
   <p class="muted" style="margin-top:0" id="shText"></p>
   <div class="card" id="shCard"></div>
   <div class="stack" style="margin-top:14px">
-    <button class="btn" id="shShare">Share…</button>
-    <button class="btn ghost" id="shCopy">Copy link</button>
-    <button class="link" id="shShort" style="justify-self:center;font-size:14px">Can't attach the photo? Send a long link with the photo inside</button>
+    <button class="btn" id="shShare" data-t="share.share">Share…</button>
+    <button class="btn ghost" id="shCopy" data-t="share.copy">Copy link</button>
+    <button class="link" id="shShort" style="justify-self:center;font-size:14px" data-t="share.long">Can't attach the photo? Send a long link with the photo inside</button>
   </div>
   <div class="err" id="shErr" style="color:var(--muted)"></div>
 </section>
 
 <!-- PLAY A RECEIVED CHALLENGE -->
 <section id="play" class="hidden">
-  <div class="back"><button class="link" id="playBack">← Challenges</button></div>
+  <div class="back"><button class="link" id="playBack" data-t="nav.challenges">← Challenges</button></div>
   <div class="card ch">
     <div class="pic"><img id="plImg" alt=""></div>
     <div class="meta"><span id="plFrom"></span><span></span></div>
     <div class="title" id="plName"></div>
-    <label class="filebtn" id="plFullLbl" style="margin-top:10px;padding:12px 8px;font-size:15px">📷&nbsp; See it sharp: pick the photo from the chat
+    <label class="filebtn" id="plFullLbl" style="margin-top:10px;padding:12px 8px;font-size:15px">📷&nbsp; <span data-t="play.sharp">See it sharp: pick the photo from the chat</span>
       <input type="file" accept="image/*" id="plFullIn"></label>
   </div>
-  <div class="q">What is it, topologically?</div>
+  <div class="q" data-t="game.q">What is it, topologically?</div>
   <div class="opts" id="plOpts"></div>
   <div class="fb" id="plFb"><strong id="plFbTitle"></strong><p id="plFbText"></p>
-    <input type="text" id="plMyName" maxlength="24" placeholder="Your name" style="margin-bottom:8px">
-    <button class="btn" id="plReply">Send my answer back</button></div>
+    <input type="text" id="plMyName" maxlength="24" placeholder="Your name" data-t-ph="play.name.ph" style="margin-bottom:8px">
+    <button class="btn" id="plReply" data-t="play.reply">Send my answer back</button></div>
 </section>
 
 </div>
@@ -298,13 +309,268 @@
 <script>
 // The drawing helpers and const OBJECTS = [ ... ] now live in objects.js; themed packs in packs/*.js.
 
+// ---------- languages ----------
+// English lives here and is the source of truth. Other languages are plain scripts, lang/<code>.js, loaded only when
+// needed; each registers itself as I18N.<code> = {ui:{key: text}, obj:{"<English name>|<English sub>": {n, s, e}}}.
+// A text is a string with {placeholders}, or an object keyed by Intl.PluralRules categories and chosen by vars.n.
+// Texts are inserted as text (textContent); only the few keys used with data-t-html may carry markup, and none of
+// those takes a placeholder. Analytics event names are identifiers, not text: they are never translated.
+const STR = {
+  "lang.label":"Language",
+  "home.intro":"To a topologist, a coffee mug and a donut are the same thing.",
+  "home.count":{one:"object, 4 levels — can you see the world that way?", other:"objects, 4 levels — can you see the world that way?"},
+  "home.daily.h":"Today's object",
+  "home.daily.p":"One object a day, the same for everyone. Guess it, then dare a friend.",
+  "home.num":"#{n}",
+  "home.done":"{mark} Done · streak {n}",
+  "home.doneNoStreak":"{mark} Done",
+  "home.best":"Best {n}/{of}",
+  "home.journey.h":"Journey",
+  "home.journey.p":"Start easy and climb to expert. 24 objects, 3 lives.",
+  "home.level.h":"Pick a level",
+  "home.ten":"10 objects",
+  "home.packs.h":"Packs",
+  "home.friends.h":"Challenge a friend",
+  "home.friends.tag":"Daily",
+  "home.friends.p":"Snap an object around you, set its topology, and see if your friends get it.",
+  "home.how":"How it works",
+  "rules.1":"Imagine each object is made of perfectly stretchy clay.",
+  "rules.2":"You may bend, stretch and squash it — never tear it or glue parts together.",
+  "rules.3":"Count the holes that go <b>all the way through</b>. That's the <b>genus</b>: sphere 0, torus 1, double torus 2…",
+  "rules.4":"Dents don't count. Something with <i>n</i> openings into one hollow space (a shirt, a pipe) has genus <i>n</i> − 1.",
+  "pack.count":{one:"{n} object", other:"{n} objects"},
+  "daily.nextIn":"Next object in {t}.",
+  "time.hm":"{h}h {m}m", "time.ms":"{m}m {s}s", "time.s":"{s}s",
+  // a short date, used only where the browser has no date formats for the language
+  "date.md":"{mon} {d}", "date.months":"Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec",
+  "archive.title":"Past objects",
+  "arch.row":"#{n} · {date}",
+  "arch.notPlayed":"Not played yet",
+  "arch.sum":"{played} of {total} played. Past objects don't change your streak.",
+  "arch.sumRight":"{played} of {total} played, {right} correct. Past objects don't change your streak.",
+  "arch.empty":"Nothing here yet. Come back tomorrow.",
+  "act.play":"Play",
+
+  "lv.1.n":"Easy", "lv.1.t":"Count the holes", "lv.1.d":"Everyday objects with holes you can see.",
+  "lv.2.n":"Medium", "lv.2.t":"Dents vs. holes", "lv.2.d":"Does it really go all the way through?",
+  "lv.3.n":"Hard", "lv.3.t":"Openings & tunnels", "lv.3.d":"Clothes, pipes and hollow things: count openings, subtract one.",
+  "lv.4.n":"Expert", "lv.4.t":"Tricks and traps", "lv.4.d":"Broken loops, sneaky holes and big networks.",
+  "shape.0":"Sphere", "shape.1":"Torus", "shape.2":"Double torus", "shape.3":"Triple torus", "shape.4":"Genus 4", "shape.5":"5 or more",
+  "shapeSub.0":"genus 0", "shapeSub.1":"genus 1", "shapeSub.2":"genus 2", "shapeSub.3":"genus 3", "shapeSub.4":"4 holes", "shapeSub.5":"genus 5+",
+  // the answer inside a sentence ("you said torus")
+  "shapeLc.0":"sphere", "shapeLc.1":"torus", "shapeLc.2":"double torus", "shapeLc.3":"triple torus", "shapeLc.4":"genus 4", "shapeLc.5":"5 or more",
+  // the answer with its genus ("Correct — torus (genus 1)!")
+  "shapeName.0":"sphere (genus 0)", "shapeName.1":"torus (genus 1)", "shapeName.2":"double torus (genus 2)", "shapeName.3":"triple torus (genus 3)", "shapeName.4":"genus 4 (genus 4)", "shapeName.5":"genus 5 or more",
+
+  "il.level":"Level {n} of 4",
+  "il.go":"Let's go",
+  "game.score":"Score",
+  "game.q":"What is it, topologically?",
+  "game.next":"Next",
+  "game.results":"See results",
+  "game.outOfLives":"Out of lives — see results",
+  "game.quit":"Quit to menu",
+  "fb.correct":"Correct — {shape}!",
+  "fb.wrong.0":"Not quite — it's a sphere (genus 0).", "fb.wrong.1":"Not quite — it's a torus (genus 1).", "fb.wrong.2":"Not quite — it's a double torus (genus 2).",
+  "fb.wrong.3":"Not quite — it's a triple torus (genus 3).", "fb.wrong.4":"Not quite — it's a genus 4 (genus 4).", "fb.wrong.5":"Not quite — it's genus 5 or more.",
+  // the legend for the rings drawn on the picture; marks.openN takes {holes}, which is marks.nHoles for n − 1
+  "marks.hole":"the hole",
+  "marks.holesMore":"holes (there may be more)",
+  "marks.holes":{one:"the {n} hole", other:"the {n} holes"},
+  "marks.open1":"the only opening: a dent, not a hole",
+  "marks.openN":{one:"{n} opening into one space, which makes {holes}", other:"{n} openings into one space, which make {holes}"},
+  "marks.nHoles":{one:"{n} hole", other:"{n} holes"},
+
+  "end.review":"Worth another look",
+  "end.youSaid":"you said {shape}",
+  "end.again":"Play again",
+  "end.back":"Back to past objects",
+  "end.shareResult":"Share result",
+  "end.menu":"Menu",
+  "end.archTitle":"Object #{n} · {date}",
+  "end.dailyTitle":"Today's object #{n}",
+  "end.fromArchive":"From the archive. Past objects don't change your streak.",
+  "end.waiting":"Day streak: {n}. A new object is waiting.",
+  "end.nextIn":"Day streak: {n}. Next object in {t}.",
+  "end.journeyOver":"Journey over",
+  "end.journeyDone":"Journey complete!",
+  "end.reached":"You made it to {level}.",
+  "end.flawlessJ":"Flawless — a true topologist.",
+  "end.allFour":"You made it through all four levels.",
+  "end.levelDone":"{name} complete",
+  "end.packDone":"{name} complete",
+  "verdict.1":"Flawless!",
+  "verdict.2":"Strong topological intuition.",
+  "verdict.3":"Getting there — watch for dents that look like holes.",
+  "verdict.4":"Remember: only holes that go all the way through count.",
+  // the daily result as it is shared: head, then a new line, then q
+  "share.daily.head":"Mugnut #{n} 🍩 {result}{streak}",
+  "share.daily.ok":"✅ Got it",
+  "share.daily.fail":"❌ It fooled me",
+  "share.daily.streak":{one:" · {n}-day streak", other:" · {n}-day streak"},
+  "share.daily.q":"Is today's object a donut?",
+  "share.copyThis":"Copy this: {text}",
+  "share.copied":"Result copied — paste it into any chat.",
+  "share.shared":"Shared!",
+
+  "nav.menu":"← Menu",
+  "nav.challenges":"← Challenges",
+  "friends.title":"Friend challenges",
+  "friends.streak":{one:"day streak", other:"day streak"},
+  "streak.done":"You've posted today's challenge. See you tomorrow!",
+  "streak.todo":"Post a photo today to keep your streak going.",
+  "friends.new":"＋ New photo challenge",
+  "friends.paste.sum":"Got a link on another device?",
+  "friends.paste.p":"Paste a challenge or answer link here.",
+  "friends.paste.open":"Open",
+  "f.waiting":"Waiting for you",
+  "f.waiting.empty":"When a friend sends you a challenge link, it shows up here.",
+  "f.mine":"Your challenges",
+  "f.mine.empty":"You haven't sent any yet.",
+  "f.done":"Answered",
+  "f.done.empty":"Nothing answered yet.",
+  "f.from":"From {from} · {day}",
+  "f.you":"You · {day}",
+  "f.gotIt":"You got it — {shape}",
+  "f.theySaid":"{from}: {shape}. You said {said}.",
+  "f.shareAgain":"Share again",
+  "f.answer":"Answer: {shape}",
+  "f.noAnswers":"No answers yet. When friends send their answer link back, open it and it lands here.",
+  "f.delete":"Delete",
+  "f.deleteArm":"Tap again to delete",
+  "f.own":"That's one of your own challenges.",
+  "f.notSaved":"That answer is for a challenge that isn't saved on this device.",
+  "f.answered":"{by} answered “{name}”: {shape} {mark}",
+  "f.broken":"That link looks broken or incomplete — ask your friend to send it again.",
+  "f.notLink":"That doesn't look like a Mugnut link.",
+  "day.today":"today",
+  "day.yesterday":"yesterday",
+  // used when a link carries no name
+  "def.object":"Mystery object",
+  "def.friend":"A friend",
+
+  "create.title":"New photo challenge",
+  "create.intro":"Find an object around you, snap it, and tell us its topology.",
+  "create.take":"Take photo",
+  "create.gallery":"From gallery",
+  "create.alt":"Your photo",
+  "create.change":"Change photo",
+  "create.name.l":"What is it?",
+  "create.name.ph":"e.g. My keyring",
+  "create.topo.l":"What's its topology?",
+  "create.note.l":"Explain your answer",
+  "create.note.hint":"(shown after they guess)",
+  "create.note.ph":"e.g. The ring and the loop on the clip are holes.",
+  "create.me.l":"Your name",
+  "create.me.ph":"So friends know who sent it",
+  "create.post":"Create challenge",
+  "err.image":"Couldn't read that image — try another photo.",
+  "err.photo":"Add a photo first.",
+  "err.name":"Give the object a name.",
+  "err.topo":"Pick its topology.",
+  "err.from":"Add your name so friends know who sent it.",
+
+  // share.challenge and reply.text travel in the message a friend receives: they are in the sender's language
+  "share.title":"Send it to a friend",
+  "share.intro":"Your photo is attached to a short link. Your friend opens the link, guesses, and can send their answer back to you.",
+  "share.chTitle":"Mugnut challenge: {name}",
+  "share.challenge":"{from} challenges you: what is “{name}” topologically? 🍩",
+  "share.hidden":"Answer: {shape} (hidden from your friend)",
+  "share.share":"Share…",
+  "share.copy":"Copy link",
+  "share.long":"Can't attach the photo? Send a long link with the photo inside",
+  "share.linkCopied":"Link copied — paste it into any chat.",
+  "share.copySend":"Copy this and send it:",
+  "share.longCopied":"Long link copied — the sharp photo is inside it.",
+  "reply.title":"My Mugnut answer",
+  "reply.text":"My answer for “{name}”: {shape} {mark}. Open to record it:",
+  "reply.h":"Send your answer to {from}",
+  "reply.p":"When {from} opens this link in their Mugnut app, your answer appears under their challenge.",
+  "reply.card":"{name}: you said {shape} {mark}",
+
+  "play.sharp":"See it sharp: pick the photo from the chat",
+  "play.name.ph":"Your name",
+  "play.reply":"Send my answer back",
+  "play.says":"{from} says it's {shape}.",
+  "play.nice":"Nice eye.",
+  "play.look":"Look again for holes that go all the way through.",
+  "play.nameFirst":"Add your name first",
+  "photo.inChat":"The photo is in your chat",
+};
+const LANGS = {en:"English", hy:"Հայերեն", ru:"Русский"};   // the picker's options, each in its own language
+const I18N = {en:{ui:STR, obj:{}}};
+let LANG = "en";
+const own = (o,k) => Object.prototype.hasOwnProperty.call(o,k) ? o[k] : undefined;   // keys and ids may come from links or storage: never read inherited properties
+const pluralRules = {};
+function pluralOf(lang, n){ try{ return (pluralRules[lang] || (pluralRules[lang] = new Intl.PluralRules(lang))).select(Number(n)); }catch(e){ return "other"; } }
+// The text for `key` in the current language, or in English when that language lacks it. Placeholders are filled once,
+// from `vars` only (a value that itself contains braces is left alone); `fallback` is returned for a key nobody has.
+function t(key, vars, fallback){
+  let lang = LANG, s = I18N[lang] && I18N[lang].ui ? own(I18N[lang].ui, key) : undefined;
+  if(s == null){ lang = "en"; s = own(STR, key); }
+  if(s == null) return fallback !== undefined ? fallback : key;
+  if(typeof s === "object") s = s[pluralOf(lang, vars && vars.n)] ?? s.other ?? "";
+  s = String(s);
+  return vars ? s.replace(/\{(\w+)\}/g, (m,k) => own(vars,k) !== undefined ? String(vars[k]) : m) : s;
+}
+// an object's name, qualifier and explanation: translated where the language has them, the English fields otherwise
+const objTr = o => { const m = I18N[LANG] && I18N[LANG].obj, x = m && own(m, `${o.name}|${o.sub||""}`); return x && typeof x==="object" ? x : null; };
+const objText = (o, k, en) => { const x = objTr(o); return x && typeof x[k]==="string" && x[k] ? x[k] : (en || ""); };
+const oName = o => objText(o, "n", o.name);
+const oSub  = o => o.sub ? objText(o, "s", o.sub) : "";
+const oEx   = o => objText(o, "e", o.ex);
+const oFull = o => oName(o) + (oSub(o) ? ` (${oSub(o)})` : "");
+const packName = id => t(`pack.${id}.n`, null, PACKS[id].n);   // packs are named in objects.js; a language may add pack.<id>.n
+// dates follow the game's language; in English they keep the reader's own English variant
+const dateLocale = () => LANG!=="en" ? LANG : /^en\b/i.test(navigator.language||"") ? undefined : "en";
+
+// fills the static markup: data-t (text), data-t-html (our own fixed strings with <b>/<i>), data-t-ph (placeholder), data-t-alt
+function applyI18n(){
+  document.documentElement.lang = LANG;
+  document.querySelectorAll("[data-t]").forEach(e=>{ e.textContent = t(e.dataset.t); });
+  document.querySelectorAll("[data-t-html]").forEach(e=>{ e.innerHTML = t(e.dataset.tHtml); });
+  document.querySelectorAll("[data-t-ph]").forEach(e=>{ e.placeholder = t(e.dataset.tPh); });
+  document.querySelectorAll("[data-t-alt]").forEach(e=>{ e.alt = t(e.dataset.tAlt); });
+  const sel = document.getElementById("langSel"); if(sel) sel.value = LANG;
+}
+// a language file is fetched once, by a script tag (so it also works from a file); resolves false if it cannot be loaded
+const langLoads = {};
+function loadLang(code){
+  if(own(I18N, code)) return Promise.resolve(true);
+  return langLoads[code] || (langLoads[code] = new Promise(res=>{
+    const s = document.createElement("script"); s.src = `lang/${code}.js`;
+    s.onload = () => res(!!own(I18N, code));
+    s.onerror = () => { delete langLoads[code]; s.remove(); res(false); };
+    document.head.append(s);
+  }));
+}
+const validLang = c => typeof c==="string" && own(LANGS, c) !== undefined;
+// stored choice first, then the browser's language, else English
+function initialLang(){
+  const s = store.get("lang"); if(validLang(s)) return s;
+  const n = String(navigator.language||"").toLowerCase();
+  return n.startsWith("hy") ? "hy" : n.startsWith("ru") ? "ru" : "en";
+}
+let wantLang = "en", booted = false;
+async function setLang(code, save){
+  if(!validLang(code)) code = "en";
+  if(save) store.set("lang", code);
+  wantLang = code;
+  const ok = await loadLang(code);
+  if(wantLang !== code) return;   // another choice was made while this one was loading
+  LANG = ok ? code : "en";        // could not be loaded (offline, say): stay in English; the choice is kept for next time
+  applyI18n();
+  if(booted && !$("home").classList.contains("hidden")) renderHome();
+}
+
 // ---------- shapes & levels ----------
-const SHAPES = ["Sphere","Torus","Double torus","Triple torus","Genus 4","5 or more"];
-const SHAPE_SUB = ["genus 0","genus 1","genus 2","genus 3","4 holes","genus 5+"];
-const LEVELS = {1:{n:"Easy",c:"var(--l1)",t:"Count the holes",d:"Everyday objects with holes you can see."},
-                2:{n:"Medium",c:"var(--l2)",t:"Dents vs. holes",d:"Does it really go all the way through?"},
-                3:{n:"Hard",c:"var(--l3)",t:"Openings & tunnels",d:"Clothes, pipes and hollow things: count openings, subtract one."},
-                4:{n:"Expert",c:"var(--l4)",t:"Tricks and traps",d:"Broken loops, sneaky holes and big networks."}};
+// SHAPES and SHAPE_SUB are the English labels (the texts are shape.<g> and shapeSub.<g>); what is shown goes through shape() and friends.
+const SHAPES = [0,1,2,3,4,5].map(g=>STR["shape."+g]);
+const SHAPE_SUB = [0,1,2,3,4,5].map(g=>STR["shapeSub."+g]);
+const shape = g => t("shape."+g), shapeSub = g => t("shapeSub."+g), shapeLc = g => t("shapeLc."+g);
+// a level's colour; its name, tagline and description are the texts lv.<n>.n, lv.<n>.t and lv.<n>.d
+const LEVELS = {1:{c:"var(--l1)"}, 2:{c:"var(--l2)"}, 3:{c:"var(--l3)"}, 4:{c:"var(--l4)"}};
+const lvName = lv => t(`lv.${lv}.n`);
 
 function genusIcon(g, w=80, h=44){
   if(g===0) return `<svg viewBox="0 0 80 44" width="${w}" height="${h}"><circle cx="40" cy="22" r="18" fill="#8fb0de" stroke="${INK}" stroke-width="1.5"/><ellipse cx="40" cy="22" rx="18" ry="5" fill="none" stroke="${INK}" stroke-width="1" stroke-dasharray="2 2" opacity=".6"/><ellipse cx="34" cy="15" rx="5" ry="3" fill="#fff" opacity=".5"/></svg>`;
@@ -318,8 +584,8 @@ function genusIcon(g, w=80, h=44){
   return `<svg viewBox="0 0 80 44" width="${w}" height="${h}">${outer}${holes.join("")}</svg>`;
 }
 function optionButtons(container, onPick){
-  container.innerHTML = SHAPES.map((s,g)=>`<button class="opt" data-g="${g}">${genusIcon(g,52,30)}<span>${s}<small>${SHAPE_SUB[g]}</small></span></button>`).join("");
-  container.querySelectorAll(".opt").forEach(b=>b.onclick=()=>onPick(+b.dataset.g, b));
+  container.innerHTML = SHAPES.map((s,g)=>`<button class="opt" data-g="${g}">${genusIcon(g,52,30)}<span></span></button>`).join("");
+  container.querySelectorAll(".opt").forEach(b=>{ const g = +b.dataset.g; b.querySelector("span").append(shape(g), el("small",{text:shapeSub(g)})); b.onclick=()=>onPick(g, b); });
 }
 // ---------- where the holes are ----------
 // Rings drawn over an object's picture after the answer: solid for a through-hole, dashed for an opening into a shared hollow space.
@@ -333,11 +599,11 @@ function marksSVG(o){
 // the sentence under the explanation that says what the rings mean; null when there are none
 function marksNote(o){
   const h = markList(o.holes).length, n = markList(o.open).length, parts = [];
-  if(h) parts.push({cls:"", text: h===1 ? "the hole" : o.g===5 ? "holes (there may be more)" : `the ${h} holes`});
-  if(n) parts.push({cls:"o", text: n===1 ? "the only opening: a dent, not a hole" : `${n} openings into one space, which make ${n-1} hole${n===2?"":"s"}`});
+  if(h) parts.push({cls:"", text: h===1 ? t("marks.hole") : o.g===5 ? t("marks.holesMore") : t("marks.holes",{n:h})});
+  if(n) parts.push({cls:"o", text: n===1 ? t("marks.open1") : t("marks.openN",{n, holes:t("marks.nHoles",{n:n-1})})});
   return parts.length ? parts : null;
 }
-const shapeName = g => g===5 ? "genus 5 or more" : `${SHAPES[g].toLowerCase()} (genus ${g})`;
+const shapeName = g => t("shapeName."+g);
 
 // ---------- helpers ----------
 const $ = id => document.getElementById(id);
@@ -346,7 +612,6 @@ function show(id){ SCREENS.forEach(s=>$(s).classList.toggle("hidden", s!==id)); 
 const store = {get(k){try{return JSON.parse(localStorage.getItem("mugnut:"+k))}catch(e){return null}}, set(k,v){try{localStorage.setItem("mugnut:"+k,JSON.stringify(v))}catch(e){}}};
 const shuffle = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]} return a; };
 function el(tag, props={}, ...kids){ const e=document.createElement(tag); Object.entries(props).forEach(([k,v])=>{ if(k==="class") e.className=v; else if(k==="text") e.textContent=v; else if(k==="html") e.innerHTML=v; else if(k.startsWith("on")) e[k]=v; else e.setAttribute(k,v); }); kids.flat().forEach(k=>k!=null&&e.append(k)); return e; }
-const lvChipHTML = lv => `<span class="chip" style="background:${LEVELS[lv].c}">${LEVELS[lv].n}</span>`;
 
 // ---------- analytics ----------
 // Anonymous, cookieless counts through GoatCounter: a page view and a few fixed event names.
@@ -376,25 +641,24 @@ function track(event){
 // ---------- home ----------
 function renderHome(){
   const jb = store.get("best-journey");
-  $("jBest").textContent = jb ? `Best ${jb}/24` : "";
+  $("jBest").textContent = jb ? t("home.best",{n:jb, of:24}) : "";
   // today counts as done if either record says so, the same rule startDaily uses to lock it
   const dd = store.get("daily"), rec = dailyLog.get(dailyNum()), mine = dd && dd.day===localDay(), doneToday = !!(mine || rec);
-  $("dTag").textContent = mine ? `${dd.ok?"✓":"✗"} Done · streak ${dd.streak}` : rec ? `${rec.ok?"✓":"✗"} Done` : `#${dailyNum()}`;
-  $("dNext").dataset.countdown = doneToday ? "Next object in " : "";
+  $("dTag").textContent = mine ? t("home.done",{mark:dd.ok?"✓":"✗", n:dd.streak}) : rec ? t("home.doneNoStreak",{mark:rec.ok?"✓":"✗"}) : t("home.num",{n:dailyNum()});
+  $("dNext").dataset.countdown = doneToday ? t("daily.nextIn") : "";
   $("archiveRow").classList.toggle("hidden", dailyNum() < 2);
   tick();
-  $("levelBtns").innerHTML = [1,2,3,4].map(lv=>{
-    const b = store.get("best-"+lv);
-    return `<button class="lvbtn" data-lv="${lv}"><b><span class="dot" style="background:${LEVELS[lv].c}"></span>${LEVELS[lv].n}</b><small>${b!=null?`Best ${b}/10`:LEVELS[lv].t}</small></button>`;
-  }).join("");
-  $("levelBtns").querySelectorAll(".lvbtn").forEach(b=>b.onclick=()=>startLevel(+b.dataset.lv));
+  $("levelBtns").innerHTML = "";
+  [1,2,3,4].forEach(lv=>{ const b = store.get("best-"+lv);
+    $("levelBtns").append(el("button",{class:"lvbtn", "data-lv":lv, onclick:()=>startLevel(lv)},
+      el("b",{}, el("span",{class:"dot", style:`background:${LEVELS[lv].c}`}), lvName(lv)), el("small",{text: b!=null ? t("home.best",{n:b, of:10}) : t(`lv.${lv}.t`)}))); });
   // themed packs: only those that have objects
   const packs = Object.keys(PACKS).filter(id=>OBJECTS.some(o=>o.pack===id));
   $("packsCard").classList.toggle("hidden", !packs.length);
   $("packBtns").innerHTML = "";
   packs.forEach(id=>{ const b = store.get("best-pack-"+id), n = OBJECTS.filter(o=>o.pack===id).length;
-    $("packBtns").append(el("button",{class:"lvbtn", "data-pack":id, onclick:()=>startPack(id)}, el("b",{text:PACKS[id].n}), el("small",{text: b!=null ? `Best ${b}/10` : `${n} objects`}))); });
-  $("objCount").textContent = OBJECTS.length;
+    $("packBtns").append(el("button",{class:"lvbtn", "data-pack":id, onclick:()=>startPack(id)}, el("b",{text:packName(id)}), el("small",{text: b!=null ? t("home.best",{n:b, of:10}) : t("pack.count",{n})}))); });
+  $("objCount").textContent = OBJECTS.length; $("objRest").textContent = t("home.count",{n:OBJECTS.length});
   show("home");
 }
 
@@ -440,14 +704,15 @@ function startDaily(num){
 function shareDaily(){
   const dd = store.get("daily") || {};
   track("share-daily");
-  const text = `Mugnut #${dd.num ?? dailyNum()} 🍩 ${dd.ok ? "✅ Got it" : "❌ It fooled me"}${dd.streak>1 ? ` · ${dd.streak}-day streak` : ""}\nIs today's object a donut?`;
+  // the shared text is in the sender's language
+  const text = t("share.daily.head",{n: dd.num ?? dailyNum(), result: t(dd.ok ? "share.daily.ok" : "share.daily.fail"), streak: dd.streak>1 ? t("share.daily.streak",{n:dd.streak}) : ""}) + "\n" + t("share.daily.q");
   const done = m => { delete $("verdict").dataset.countdown; $("verdict").textContent = m; };
   const copy = () => {
-    const manual = () => done(`Copy this: ${text} ${APP_URL}`);
+    const manual = () => done(t("share.copyThis",{text:`${text} ${APP_URL}`}));
     if(!navigator.clipboard) return manual();
-    navigator.clipboard.writeText(text + "\n" + APP_URL).then(()=>done("Result copied — paste it into any chat."), manual);
+    navigator.clipboard.writeText(text + "\n" + APP_URL).then(()=>done(t("share.copied")), manual);
   };
-  if(navigator.share){ navigator.share({text, url:APP_URL}).then(()=>done("Shared!")).catch(e=>{ if(!e || e.name!=="AbortError") copy(); }); return; }
+  if(navigator.share){ navigator.share({text, url:APP_URL}).then(()=>done(t("share.shared"))).catch(e=>{ if(!e || e.name!=="AbortError") copy(); }); return; }
   copy();
 }
 function startLevel(lv){
@@ -467,9 +732,9 @@ function nextQuestion(){
   const o = G.deck[G.idx];
   if(G.mode==="journey" && o.lv!==G.lastLv){
     G.lastLv = o.lv;
-    $("ilChip").textContent = `Level ${o.lv} of 4`; $("ilChip").style.background = LEVELS[o.lv].c;
-    $("ilTitle").textContent = `${LEVELS[o.lv].n}: ${LEVELS[o.lv].t}`;
-    $("ilText").textContent = LEVELS[o.lv].d;
+    $("ilChip").textContent = t("il.level",{n:o.lv}); $("ilChip").style.background = LEVELS[o.lv].c;
+    $("ilTitle").textContent = `${lvName(o.lv)}: ${t(`lv.${o.lv}.t`)}`;
+    $("ilText").textContent = t(`lv.${o.lv}.d`);
     $("ilGo").onclick = ()=>{ show("game"); renderQ(); };
     show("interlude"); return;
   }
@@ -477,12 +742,13 @@ function nextQuestion(){
 }
 function renderQ(){
   const o = G.deck[G.idx];
-  $("lvChip").textContent = LEVELS[o.lv].n; $("lvChip").style.background = LEVELS[o.lv].c;
+  $("lvChip").textContent = lvName(o.lv); $("lvChip").style.background = LEVELS[o.lv].c;
   $("num").textContent = G.idx+1; $("tot").textContent = G.deck.length; $("sc").textContent = G.score;
   $("hearts").textContent = G.lives==null ? "" : "♥".repeat(G.lives) + "♡".repeat(3-G.lives);
   $("prog").style.width = (G.idx/G.deck.length*100)+"%";
-  $("pic").innerHTML = `<svg viewBox="0 0 240 200" role="img" aria-label="${o.name}">${o.svg}</svg>`;
-  $("name").textContent = o.name; $("sub").textContent = o.sub || "";
+  $("pic").innerHTML = `<svg viewBox="0 0 240 200" role="img">${o.svg}</svg>`;
+  $("pic").firstChild.setAttribute("aria-label", oName(o));
+  $("name").textContent = oName(o); $("sub").textContent = oSub(o);
   $("fb").className = "fb";
   optionButtons($("opts"), answer);
 }
@@ -502,14 +768,14 @@ function answer(g){
   }
   $("sc").textContent = G.score;
   if(G.lives!=null) $("hearts").textContent = "♥".repeat(G.lives) + "♡".repeat(3-G.lives);
-  $("fbTitle").textContent = ok ? `Correct — ${shapeName(o.g)}!` : `Not quite — it's ${o.g===5?"":"a "}${shapeName(o.g)}.`;
-  $("fbText").textContent = o.ex;
+  $("fbTitle").textContent = ok ? t("fb.correct",{shape:shapeName(o.g)}) : t("fb.wrong."+o.g);
+  $("fbText").textContent = oEx(o);
   const svg = $("pic").querySelector("svg"), note = marksNote(o);
   if(svg) svg.insertAdjacentHTML("beforeend", marksSVG(o));
   $("fbMarks").innerHTML = ""; $("fbMarks").classList.toggle("hidden", !note);
   (note||[]).forEach((p,i)=>$("fbMarks").append(i ? " · " : "", el("i",{class:p.cls}), p.text));
   const last = G.idx===G.deck.length-1 || G.lives===0;
-  $("nextBtn").textContent = last ? (G.lives===0 ? "Out of lives — see results" : "See results") : "Next";
+  $("nextBtn").textContent = last ? t(G.lives===0 ? "game.outOfLives" : "game.results") : t("game.next");
   $("fb").className = "fb show " + (ok?"good":"bad");
   setTimeout(()=>$("fb").scrollIntoView({behavior:"smooth", block:"nearest"}), 50);
 }
@@ -517,44 +783,44 @@ $("nextBtn").onclick = ()=>{ G.idx++; nextQuestion(); };
 function finish(){
   const total = G.deck.length;
   $("final").textContent = `${G.score}/${total}`;
-  $("againBtn").textContent = G.mode!=="daily" ? "Play again" : G.archive ? "Back to past objects" : "Share result";
+  $("againBtn").textContent = t(G.mode!=="daily" ? "end.again" : G.archive ? "end.back" : "end.shareResult");
   delete $("verdict").dataset.countdown; delete $("verdict").dataset.until; delete $("verdict").dataset.after;
   if(G.mode!=="daily") track("round-finish-" + (G.mode==="journey" ? "journey" : G.mode==="pack" ? "pack-"+G.pack : "level-"+G.lv));
   if(G.mode==="daily"){
     const dd = store.get("daily") || {streak:1};
-    $("endTitle").textContent = G.archive ? `Object #${G.num} · ${shortDate(dateOfNum(G.num))}` : `Today's object #${G.num}`;
+    $("endTitle").textContent = G.archive ? t("end.archTitle",{n:G.num, date:shortDate(dateOfNum(G.num))}) : t("end.dailyTitle",{n:G.num});
     $("final").textContent = G.score ? "✓" : "✗";
-    if(G.archive) $("verdict").textContent = "From the archive. Past objects don't change your streak.";
+    if(G.archive) $("verdict").textContent = t("end.fromArchive");
     else {
-      const v = $("verdict"), waiting = `Day streak: ${dd.streak}. A new object is waiting.`;
-      if(G.num===dailyNum()){ v.dataset.countdown = `Day streak: ${dd.streak}. Next object in `; v.dataset.until = localDay(); v.dataset.after = waiting; tick(); }
+      const v = $("verdict"), waiting = t("end.waiting",{n:dd.streak});
+      if(G.num===dailyNum()){ v.dataset.countdown = t("end.nextIn",{n:dd.streak}); v.dataset.until = localDay(); v.dataset.after = waiting; tick(); }
       else v.textContent = waiting;
     }
   } else if(G.mode==="journey"){
     const reached = G.deck[Math.min(G.idx, total-1)].lv;
-    $("endTitle").textContent = G.lives===0 ? "Journey over" : "Journey complete!";
-    $("verdict").textContent = G.lives===0 ? `You made it to ${LEVELS[reached].n}.` : (G.score===total ? "Flawless — a true topologist." : "You made it through all four levels.");
+    $("endTitle").textContent = t(G.lives===0 ? "end.journeyOver" : "end.journeyDone");
+    $("verdict").textContent = G.lives===0 ? t("end.reached",{level:lvName(reached)}) : t(G.score===total ? "end.flawlessJ" : "end.allFour");
     if(G.score > (store.get("best-journey")||0)) store.set("best-journey", G.score);
   } else {
     const r = G.score/total, pack = G.mode==="pack";
-    $("endTitle").textContent = `${pack ? PACKS[G.pack].n : LEVELS[G.lv].n} complete`;
-    $("verdict").textContent = r===1 ? "Flawless!" : r>=.7 ? "Strong topological intuition." : r>=.5 ? "Getting there — watch for dents that look like holes." : "Remember: only holes that go all the way through count.";
+    $("endTitle").textContent = pack ? t("end.packDone",{name:packName(G.pack)}) : t("end.levelDone",{name:lvName(G.lv)});
+    $("verdict").textContent = t(r===1 ? "verdict.1" : r>=.7 ? "verdict.2" : r>=.5 ? "verdict.3" : "verdict.4");
     const key = pack ? "best-pack-"+G.pack : "best-"+G.lv, b = store.get(key); if(b==null || G.score>b) store.set(key, G.score);
   }
   $("reviewCard").classList.toggle("hidden", G.missed.length===0);
   $("review").innerHTML = "";
-  G.missed.forEach(m=>$("review").append(el("li",{}, el("span",{text: m.o.name + (m.o.sub?` (${m.o.sub})`:"")}), el("em",{html:`${SHAPES[m.o.g]}<br><small>you said ${SHAPES[m.g].toLowerCase()}</small>`}))));
+  G.missed.forEach(m=>$("review").append(el("li",{}, el("span",{text: oFull(m.o)}), el("em",{}, shape(m.o.g), el("br"), el("small",{text: t("end.youSaid",{shape:shapeLc(m.g)})})))));
   show("end");
 }
 $("againBtn").onclick = ()=> G.mode==="daily" ? (G.archive ? openArchive() : shareDaily()) : G.mode==="journey" ? startJourney() : G.mode==="pack" ? startPack(G.pack) : startLevel(G.lv);
 $("dailyBtn").onclick = ()=>startDaily();
 $("archiveBtn").onclick = openArchive;
 
-// countdown to local midnight, written into any element carrying data-countdown="<text before the time>"
+// countdown to local midnight, written into any element carrying data-countdown="<text with {t} where the time goes>"
 function untilTomorrow(){
-  const n = new Date(), ms = new Date(n.getFullYear(), n.getMonth(), n.getDate()+1) - n, t = Math.max(0, Math.ceil(ms/1000));
-  const h = Math.floor(t/3600), m = Math.floor(t%3600/60), sec = t%60;
-  return h ? `${h}h ${String(m).padStart(2,"0")}m` : m ? `${m}m ${String(sec).padStart(2,"0")}s` : `${sec}s`;
+  const n = new Date(), ms = new Date(n.getFullYear(), n.getMonth(), n.getDate()+1) - n, left = Math.max(0, Math.ceil(ms/1000));
+  const h = Math.floor(left/3600), m = Math.floor(left%3600/60), sec = left%60;
+  return h ? t("time.hm",{h, m:String(m).padStart(2,"0")}) : m ? t("time.ms",{m, s:String(sec).padStart(2,"0")}) : t("time.s",{s:sec});
 }
 let tickDay = null;
 function tick(){
@@ -565,13 +831,20 @@ function tick(){
   document.querySelectorAll("[data-countdown]").forEach(e=>{
     // counting down to a day that has now arrived: say so instead of starting on the next 24 hours
     if(e.dataset.until && e.dataset.until!==today){ e.textContent = e.dataset.after || ""; delete e.dataset.countdown; delete e.dataset.until; return; }
-    if(e.dataset.countdown) e.textContent = e.dataset.countdown + untilTomorrow() + "."; else if(e.id==="dNext") e.textContent = "";
+    if(e.dataset.countdown) e.textContent = e.dataset.countdown.replace("{t}", untilTomorrow()); else if(e.id==="dNext") e.textContent = "";
   });
 }
 setInterval(tick, 1000);
 
 // ---- daily archive: every earlier day, newest first ----
-const shortDate = d => d.toLocaleDateString(undefined, {month:"short", day:"numeric"});
+// some browsers ship without date formats for every language (and would answer in English): the language's own month names are used then
+const intlDates = {};
+function shortDate(d){
+  const loc = dateLocale();
+  if(loc && !(loc in intlDates)){ try{ intlDates[loc] = Intl.DateTimeFormat.supportedLocalesOf(loc).length > 0; }catch(e){ intlDates[loc] = false; } }
+  if(loc && !intlDates[loc]) return t("date.md",{d:d.getDate(), mon:t("date.months").split(" ")[d.getMonth()] || ""});
+  return d.toLocaleDateString(loc, {month:"short", day:"numeric"});
+}
 const ARCHIVE_DAYS = 60;
 function openArchive(){
   const today = dailyNum(), list = $("arList"); list.innerHTML = "";
@@ -580,10 +853,10 @@ function openArchive(){
     const e = dailyLog.get(n), o = dailyObject(n); total++;
     if(e){ played++; if(e.ok) right++; }
     list.append(el("button",{class:"arrow", "data-num":n, onclick:()=>startDaily(n)},
-      el("span",{}, el("b",{text:`#${n} · ${shortDate(dateOfNum(n))}`}), el("small",{text: e ? o.name + (o.sub?` (${o.sub})`:"") : "Not played yet"})),
-      el("span",{class:"st"+(e?(e.ok?" good":" bad"):""), text: e ? (e.ok?"✓":"✗") : "Play"})));
+      el("span",{}, el("b",{text:t("arch.row",{n, date:shortDate(dateOfNum(n))})}), el("small",{text: e ? oFull(o) : t("arch.notPlayed")})),
+      el("span",{class:"st"+(e?(e.ok?" good":" bad"):""), text: e ? (e.ok?"✓":"✗") : t("act.play")})));
   }
-  $("arSummary").textContent = total ? `${played} of ${total} played${played?`, ${right} correct`:""}. Past objects don't change your streak.` : "Nothing here yet. Come back tomorrow.";
+  $("arSummary").textContent = total ? t(played ? "arch.sumRight" : "arch.sum", {played, total, right}) : t("arch.empty");
   track("archive-opened");
   show("archive");
 }
@@ -598,7 +871,7 @@ document.querySelectorAll("[data-home]").forEach(b=>b.onclick=renderHome);
 const APP_URL = location.origin + location.pathname;
 const PHOTO_BUDGET = 12000;  // optional long link with a sharp photo inside (when the photo can't be attached)
 const CAPTION_LIMIT = 1000;  // WhatsApp & Telegram cap a photo's caption at 1024 characters — the whole message must fit
-const shareText = c => `${c.from} challenges you: what is “${c.name}” topologically? 🍩`;
+const shareText = c => t("share.challenge",{from:c.from, name:c.name});   // in the sender's language
 // small preview sized so that text + link fit in one photo caption
 function fitShort(c, img){
   const base = challengeLink({...c, short:{thumb:"", mime:WEBP_OK?"image/webp":"image/jpeg"}}, true);
@@ -667,7 +940,6 @@ const hashId = id => [...id].reduce((h,c)=>(h*31 + c.charCodeAt(0))>>>0, 7);
 const hideG = (g,id) => (g + hashId(id)) % 6;          // the answer isn't readable from the link at a glance
 const showG = (k,id) => ((k - hashId(id)) % 6 + 6) % 6;
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
-const own = (o,k) => Object.prototype.hasOwnProperty.call(o,k) ? o[k] : undefined;   // ids come from links: never read inherited properties
 const validId = id => /^[A-Za-z0-9]{1,40}$/.test(id);
 const clean = (s,n) => String(s ?? "").replace(/[\u0000-\u001f]/g," ").trim().slice(0,n);
 
@@ -683,7 +955,7 @@ const MAX_RECEIVED = 200, MAX_PREVIEW = 20000;   // link data is untrusted: keep
 function myName(){ return store.get("name") || ""; }
 
 const localDay = (t=Date.now()) => { const d=new Date(t); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
-function dayLabel(t){ const d=localDay(t), today=localDay(), y=localDay(Date.now()-864e5); return d===today?"today":d===y?"yesterday":new Date(t).toLocaleDateString(undefined,{month:"short",day:"numeric"}); }
+function dayLabel(at){ const d=localDay(at), today=localDay(), y=localDay(Date.now()-864e5); return d===today ? t("day.today") : d===y ? t("day.yesterday") : shortDate(new Date(at)); }
 function fNote(msg){ $("fNote").textContent = msg || ""; $("fNote").classList.toggle("hidden", !msg); }
 
 function challengeLink(c, short=false){
@@ -710,7 +982,7 @@ function handleHash(raw){
       const g = showG(+x.k, id);
       if(!Number.isInteger(g) || g<0 || g>5) throw 0;
       const d = DB.load();
-      if(own(d.mine, id)){ openFriends(); fNote("That's one of your own challenges."); return true; }
+      if(own(d.mine, id)){ openFriends(); fNote(t("f.own")); return true; }
       let incoming = urlToRaw(p).replace(/[^A-Za-z0-9+/=]/g,"");
       if(incoming.length > MAX_PREVIEW) incoming = "";   // far beyond anything the game produces: show the placeholder instead
       const had = own(d.received, id);
@@ -718,7 +990,7 @@ function handleHash(raw){
         had.thumb = incoming; had.mime = x.m==="w" ? "image/webp" : "image/jpeg"; DB.save(d);
       }
       if(!had){
-        d.received[id] = {id, name:clean(x.n,50)||"Mystery object", note:clean(x.t,160), from:clean(x.f,24)||"A friend",
+        d.received[id] = {id, name:clean(x.n,50)||t("def.object"), note:clean(x.t,160), from:clean(x.f,24)||t("def.friend"),
           g, thumb:incoming, mime: x.m==="w" ? "image/webp" : "image/jpeg", createdAt:+x.at||Date.now(), openedAt:Date.now(), guess:null};
         // keep at most MAX_RECEIVED: the oldest answered ones go first
         const extra = Object.values(d.received).sort((a,b)=>(a.guess==null)-(b.guess==null) || (a.openedAt||0)-(b.openedAt||0)).slice(0, Math.max(0, Object.keys(d.received).length - MAX_RECEIVED));
@@ -731,18 +1003,18 @@ function handleHash(raw){
     }
     if(h.startsWith("r=")){
       const x = JSON.parse(b64u.dec(h.slice(2)));
-      const id = clean(x.id,40), guess = +x.g, by = clean(x.by,24) || "A friend";
+      const id = clean(x.id,40), guess = +x.g, by = clean(x.by,24) || t("def.friend");
       const d = DB.load(); const c = validId(id) ? own(d.mine, id) : undefined;
       openFriends();
-      if(!c){ fNote("That answer is for a challenge that isn't saved on this device."); return true; }
+      if(!c){ fNote(t("f.notSaved")); return true; }
       if(!Number.isInteger(guess) || guess<0 || guess>5) throw 0;
       c.guesses = (c.guesses||[]).filter(q=>!(q.by===by && q.at===x.at));
       c.guesses.push({by, guess, at:+x.at||Date.now()});
       DB.save(d); renderFeed();
-      fNote(`${by} answered “${c.name}”: ${SHAPES[guess].toLowerCase()} ${guess===c.g?"✓":"✗"}`);
+      fNote(t("f.answered",{by, name:c.name, shape:shapeLc(guess), mark:guess===c.g?"✓":"✗"}));
       return true;
     }
-  }catch(e){ console.warn(e); openFriends(); fNote("That link looks broken or incomplete — ask your friend to send it again."); return true; }
+  }catch(e){ console.warn(e); openFriends(); fNote(t("f.broken")); return true; }
   return false;
 }
 function consumeHash(){ if(handleHash()) history.replaceState(null, "", APP_URL); }
@@ -752,11 +1024,11 @@ window.addEventListener("hashchange", consumeHash);
 function openFriends(){ show("friends"); fNote(""); renderFeed(); }
 function renderStreak(d){
   const days = new Set(d.postedDays);
-  let n=0, t=Date.now();
-  if(!days.has(localDay(t))) t -= 864e5;
-  while(days.has(localDay(t))){ n++; t -= 864e5; }
-  $("streakN").textContent = n;
-  $("streakText").textContent = days.has(localDay()) ? "You've posted today's challenge. See you tomorrow!" : "Post a photo today to keep your streak going.";
+  let n=0, at=Date.now();
+  if(!days.has(localDay(at))) at -= 864e5;
+  while(days.has(localDay(at))){ n++; at -= 864e5; }
+  $("streakN").textContent = n; $("streakLbl").textContent = t("friends.streak",{n});
+  $("streakText").textContent = t(days.has(localDay()) ? "streak.done" : "streak.todo");
 }
 function renderFeed(){
   const d = DB.load(); renderStreak(d);
@@ -769,14 +1041,15 @@ function renderFeed(){
     if(!list.length){ feed.append(el("p",{class:"muted", style:"margin:0 0 6px;font-size:14px", text:empty})); return; }
     list.forEach(c=>feed.append(render(c)));
   };
-  section("Waiting for you", waiting, c=>miniCard(c, `From ${c.from} · ${dayLabel(c.createdAt)}`, "Play", ()=>openPlay(c.id)), "When a friend sends you a challenge link, it shows up here.");
-  section("Your challenges", mine, myCard, "You haven't sent any yet.");
-  section("Answered", done, c=>{
-    const card = miniCard(c, `From ${c.from} · ${dayLabel(c.createdAt)}`);
+  const fromLine = c => t("f.from",{from:c.from, day:dayLabel(c.createdAt)});
+  section(t("f.waiting"), waiting, c=>miniCard(c, fromLine(c), t("act.play"), ()=>openPlay(c.id)), t("f.waiting.empty"));
+  section(t("f.mine"), mine, myCard, t("f.mine.empty"));
+  section(t("f.done"), done, c=>{
+    const card = miniCard(c, fromLine(c));
     const ok = c.guess===c.g;
-    card.append(el("div",{class:"result fb show "+(ok?"good":"bad")}, el("b",{text: ok?`You got it — ${shapeName(c.g)}`:`${c.from}: ${shapeName(c.g)}. You said ${SHAPES[c.guess].toLowerCase()}.`}), c.note?el("div",{style:"margin-top:4px",text:c.note}):null));
+    card.append(el("div",{class:"result fb show "+(ok?"good":"bad")}, el("b",{text: ok ? t("f.gotIt",{shape:shapeName(c.g)}) : t("f.theySaid",{from:c.from, shape:shapeName(c.g), said:shapeLc(c.guess)})}), c.note?el("div",{style:"margin-top:4px",text:c.note}):null));
     return card;
-  }, "Nothing answered yet.");
+  }, t("f.done.empty"));
 }
 function miniCard(c, metaText, action, onAction){
   const card = el("div",{class:"card ch"});
@@ -786,24 +1059,24 @@ function miniCard(c, metaText, action, onAction){
   return card;
 }
 function myCard(c){
-  const card = miniCard(c, `You · ${dayLabel(c.createdAt)}`, "Share again", ()=>openShare(c));
-  card.append(el("div",{class:"result", style:"background:#eef1f7"}, el("b",{text:`Answer: ${shapeName(c.g)}`}), c.note?el("div",{class:"muted", style:"margin-top:4px", text:c.note}):null));
+  const card = miniCard(c, t("f.you",{day:dayLabel(c.createdAt)}), t("f.shareAgain"), ()=>openShare(c));
+  card.append(el("div",{class:"result", style:"background:#eef1f7"}, el("b",{text:t("f.answer",{shape:shapeName(c.g)})}), c.note?el("div",{class:"muted", style:"margin-top:4px", text:c.note}):null));
   const gs = (c.guesses||[]).slice().sort((a,b)=>a.at-b.at);
   if(gs.length){
     const ul = el("ul",{class:"guesses"});
-    gs.forEach(a=>ul.append(el("li",{}, el("span",{text:a.by}), el("span",{text:`${SHAPES[a.guess]} ${a.guess===c.g?"✓":"✗"}`, style:`color:${a.guess===c.g?"var(--good)":"var(--bad)"};font-weight:600`}))));
+    gs.forEach(a=>ul.append(el("li",{}, el("span",{text:a.by}), el("span",{text:`${shape(a.guess)} ${a.guess===c.g?"✓":"✗"}`, style:`color:${a.guess===c.g?"var(--good)":"var(--bad)"};font-weight:600`}))));
     card.append(ul);
-  } else card.append(el("p",{class:"muted", style:"font-size:14px;margin:10px 2px 0", text:"No answers yet. When friends send their answer link back, open it and it lands here."}));
-  card.append(el("div",{style:"text-align:right"}, el("button",{class:"link", style:"color:var(--bad)", text:"Delete", "data-del":c.id})));
+  } else card.append(el("p",{class:"muted", style:"font-size:14px;margin:10px 2px 0", text:t("f.noAnswers")}));
+  card.append(el("div",{style:"text-align:right"}, el("button",{class:"link", style:"color:var(--bad)", text:t("f.delete"), "data-del":c.id})));
   return card;
 }
 document.addEventListener("click", ev=>{
   const btn = ev.target.closest("[data-del]"); if(!btn) return;
-  if(btn.dataset.armed!=="1"){ btn.dataset.armed="1"; btn.textContent="Tap again to delete"; setTimeout(()=>{ if(btn.isConnected){btn.dataset.armed="";btn.textContent="Delete";} },4000); return; }
+  if(btn.dataset.armed!=="1"){ btn.dataset.armed="1"; btn.textContent=t("f.deleteArm"); setTimeout(()=>{ if(btn.isConnected){btn.dataset.armed="";btn.textContent=t("f.delete");} },4000); return; }
   const d = DB.load(); delete d.mine[btn.dataset.del]; DB.save(d); Photos.del(btn.dataset.del); renderFeed();
 });
 $("friendsBtn").onclick = openFriends;
-$("pasteBtn").onclick = ()=>{ const v=$("pasteIn").value.trim(); if(!v) return; $("pasteIn").value=""; if(!handleHash(v.includes("#")?v:"#"+v)) fNote("That doesn't look like a Mugnut link."); };
+$("pasteBtn").onclick = ()=>{ const v=$("pasteIn").value.trim(); if(!v) return; $("pasteIn").value=""; if(!handleHash(v.includes("#")?v:"#"+v)) fNote(t("f.notLink")); };
 
 // ---- create ----
 let draft = {photo:null, thumb:null, g:null};
@@ -872,7 +1145,7 @@ async function handleFile(file){
     URL.revokeObjectURL(url);
     $("preview").src = `data:${hi.mime};base64,${hi.thumb}`;
     $("previewCard").classList.remove("hidden"); $("photoBtns").classList.add("hidden");
-  }catch(e){ console.warn(e); $("chErr").textContent = "Couldn't read that image — try another photo."; }
+  }catch(e){ console.warn(e); $("chErr").textContent = t("err.image"); }
 }
 $("camIn").onchange = e=>{ handleFile(e.target.files[0]); e.target.value=""; };
 $("galIn").onchange = e=>{ handleFile(e.target.files[0]); e.target.value=""; };
@@ -884,10 +1157,10 @@ $("postBtn").onclick = ()=>{
 };
 function post(){
   const name = clean($("chName").value,50), note = clean($("chNote").value,160), from = clean($("myName").value,24);
-  if(!draft.thumb) return $("chErr").textContent = "Add a photo first.";
-  if(!name) return $("chErr").textContent = "Give the object a name.";
-  if(draft.g==null) return $("chErr").textContent = "Pick its topology.";
-  if(!from) return $("chErr").textContent = "Add your name so friends know who sent it.";
+  if(!draft.thumb) return $("chErr").textContent = t("err.photo");
+  if(!name) return $("chErr").textContent = t("err.name");
+  if(draft.g==null) return $("chErr").textContent = t("err.topo");
+  if(!from) return $("chErr").textContent = t("err.from");
   store.set("name", from);
   const c = {id:newId(), name, note, from, g:draft.g, thumb:draft.thumb, mime:draft.mime, createdAt:Date.now(), guesses:[]};
   const full = draft.full, photo = draft.photo;
@@ -914,30 +1187,30 @@ async function openShare(c, photoBlob=null){
   shareCtx = {
     kind: "share-challenge",
     urlLong: challengeLink(c, false),
-    title:`Mugnut challenge: ${c.name}`,
+    title:t("share.chTitle",{name:c.name}),
     text:shareText(c),
     url:link, file: photoBlob ? new File([photoBlob], "mugnut-challenge.jpg", {type:"image/jpeg"}) : null
   };
-  $("shTitle").textContent = "Send it to a friend";
-  $("shText").textContent = "Your photo is attached to a short link. Your friend opens the link, guesses, and can send their answer back to you.";
+  $("shTitle").textContent = t("share.title");
+  $("shText").textContent = t("share.intro");
   $("shShort").classList.remove("hidden");
   const card = $("shCard"); card.innerHTML="";
   card.className = "card ch";
   card.append(el("div",{class:"pic"}, showPhoto(el("img",{alt:c.name}), c)));
   card.append(el("div",{class:"title", text:c.name}));
-  card.append(el("div",{class:"muted", style:"margin:4px 2px 0;font-size:14px", text:`Answer: ${shapeName(c.g)} (hidden from your friend)`}));
+  card.append(el("div",{class:"muted", style:"margin:4px 2px 0;font-size:14px", text:t("share.hidden",{shape:shapeName(c.g)})}));
   $("shErr").textContent = "";
   show("share");
 }
 function openReplyShare(rc, guess){
-  const r = {id:rc.id, guess, by: myName() || "A friend", at:Date.now()};
+  const r = {id:rc.id, guess, by: myName() || t("def.friend"), at:Date.now()};
   const ok = guess===rc.g;
-  shareCtx = {kind:"share-reply", title:"My Mugnut answer", text:`My answer for “${rc.name}”: ${SHAPES[guess].toLowerCase()} ${ok?"✓":"✗"}. Open to record it:`, url:answerLink(r), file:null};
-  $("shTitle").textContent = `Send your answer to ${rc.from}`;
-  $("shText").textContent = `When ${rc.from} opens this link in their Mugnut app, your answer appears under their challenge.`;
+  shareCtx = {kind:"share-reply", title:t("reply.title"), text:t("reply.text",{name:rc.name, shape:shapeLc(guess), mark:ok?"✓":"✗"}), url:answerLink(r), file:null};
+  $("shTitle").textContent = t("reply.h",{from:rc.from});
+  $("shText").textContent = t("reply.p",{from:rc.from});
   $("shShort").classList.add("hidden");
   const card=$("shCard"); card.innerHTML=""; card.className="card";
-  card.append(el("b",{text:`${rc.name}: you said ${SHAPES[guess].toLowerCase()} ${ok?"✓":"✗"}`}));
+  card.append(el("b",{text:t("reply.card",{name:rc.name, shape:shapeLc(guess), mark:ok?"✓":"✗"})}));
   $("shErr").textContent = "";
   show("share");
 }
@@ -955,15 +1228,15 @@ $("shShare").onclick = async ()=>{
         // no photo attachment possible: send the long link that has the sharp photo inside
         await navigator.share({title:shareCtx.title, text:shareCtx.text, url:shareCtx.urlLong || shareCtx.url});
       }
-      $("shErr").textContent = "Shared!";
+      $("shErr").textContent = t("share.shared");
     } else { await copyLink(); }
   }catch(e){ if(e && e.name!=="AbortError"){ await copyLink(); } }
 };
 async function copyLink(){
   const txt = shareCtx.text + "\n" + shareCtx.url;
-  try{ await navigator.clipboard.writeText(txt); $("shErr").textContent = "Link copied — paste it into any chat."; }
+  try{ await navigator.clipboard.writeText(txt); $("shErr").textContent = t("share.linkCopied"); }
   catch(e){
-    const ta = el("textarea",{style:"margin-top:8px"}); ta.value = txt; $("shErr").textContent = "Copy this and send it:"; $("shErr").append(ta); ta.select();
+    const ta = el("textarea",{style:"margin-top:8px"}); ta.value = txt; $("shErr").textContent = t("share.copySend"); $("shErr").append(ta); ta.select();
   }
 }
 $("shCopy").onclick = ()=>{ track(shareCtx.kind); return copyLink(); };
@@ -971,10 +1244,10 @@ $("shShort").onclick = async ()=>{
   track(shareCtx.kind);
   const txt = shareCtx.text + "\n" + shareCtx.urlLong;
   try{
-    if(navigator.share){ await navigator.share({title:shareCtx.title, text:shareCtx.text, url:shareCtx.urlLong}); $("shErr").textContent = "Shared!"; return; }
+    if(navigator.share){ await navigator.share({title:shareCtx.title, text:shareCtx.text, url:shareCtx.urlLong}); $("shErr").textContent = t("share.shared"); return; }
   }catch(e){ if(e && e.name==="AbortError") return; }
-  try{ await navigator.clipboard.writeText(txt); $("shErr").textContent = "Long link copied — the sharp photo is inside it."; }
-  catch(e){ const ta = el("textarea",{style:"margin-top:8px"}); ta.value = txt; $("shErr").textContent = "Copy this and send it:"; $("shErr").append(ta); ta.select(); }
+  try{ await navigator.clipboard.writeText(txt); $("shErr").textContent = t("share.longCopied"); }
+  catch(e){ const ta = el("textarea",{style:"margin-top:8px"}); ta.value = txt; $("shErr").textContent = t("share.copySend"); $("shErr").append(ta); ta.select(); }
 };
 
 // ---- play a received challenge ----
@@ -996,7 +1269,7 @@ function openPlay(id){
       if(await Photos.put(id, sharp)){ c.sharp = true; markSharp(id); }
     }catch(err){ console.warn(err); }
   };
-  $("plFrom").textContent = `From ${c.from} · ${dayLabel(c.createdAt)}`;
+  $("plFrom").textContent = t("f.from",{from:c.from, day:dayLabel(c.createdAt)});
   $("plName").textContent = c.name;
   $("plFb").className = "fb";
   optionButtons($("plOpts"), g=>{
@@ -1008,7 +1281,7 @@ function openPlay(id){
   $("plMyName").value = myName();
   $("plReply").onclick = ()=>{
     const n = clean($("plMyName").value, 24);
-    if(!n){ $("plMyName").focus(); $("plMyName").placeholder = "Add your name first"; return; }
+    if(!n){ $("plMyName").focus(); $("plMyName").placeholder = t("play.nameFirst"); return; }
     store.set("name", n);
     openReplyShare(c, DB.load().received[id].guess);
   };
@@ -1017,17 +1290,18 @@ function openPlay(id){
 function reveal(c, g){
   $("plOpts").querySelectorAll(".opt").forEach(b=>{ const bg=+b.dataset.g; b.disabled=true; if(bg===c.g) b.classList.add("correct"); else if(bg===g) b.classList.add("wrong"); });
   const ok = g===c.g;
-  $("plFbTitle").textContent = ok ? `Correct — ${shapeName(c.g)}!` : `${c.from} says it's ${shapeName(c.g)}.`;
-  $("plFbText").textContent = c.note || (ok ? "Nice eye." : "Look again for holes that go all the way through.");
+  $("plFbTitle").textContent = ok ? t("fb.correct",{shape:shapeName(c.g)}) : t("play.says",{from:c.from, shape:shapeName(c.g)});
+  $("plFbText").textContent = c.note || t(ok ? "play.nice" : "play.look");
   $("plFb").className = "fb show " + (ok?"good":"bad");
 }
 $("playBack").onclick = openFriends;
 
 // any photo that can't be shown (e.g. a link cut short by a chat app) gets a friendly placeholder
-const PHOTO_PH = "data:image/svg+xml," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200"><rect width="320" height="200" rx="12" fill="#f1ece1"/><g fill="none" stroke="#9aa3b2" stroke-width="6" stroke-linejoin="round"><rect x="110" y="62" width="100" height="72" rx="10"/><circle cx="160" cy="98" r="20"/><path d="M132 62l8-12h40l8 12"/></g><text x="160" y="170" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" fill="#6b7280">The photo is in your chat</text></svg>`);
+const xmlText = s => String(s).replace(/[&<>]/g, c => ({"&":"&amp;", "<":"&lt;", ">":"&gt;"}[c]));
+const photoPH = () => "data:image/svg+xml," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200"><rect width="320" height="200" rx="12" fill="#f1ece1"/><g fill="none" stroke="#9aa3b2" stroke-width="6" stroke-linejoin="round"><rect x="110" y="62" width="100" height="72" rx="10"/><circle cx="160" cy="98" r="20"/><path d="M132 62l8-12h40l8 12"/></g><text x="160" y="170" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" fill="#6b7280">${xmlText(t("photo.inChat"))}</text></svg>`);
 document.addEventListener("error", e=>{
-  const t = e.target;
-  if(t && t.tagName==="IMG" && !t.dataset.ph){ t.dataset.ph = "1"; t.classList.remove("tiny"); t.src = PHOTO_PH; }
+  const img = e.target;
+  if(img && img.tagName==="IMG" && !img.dataset.ph){ img.dataset.ph = "1"; img.classList.remove("tiny"); img.src = photoPH(); }
 }, true);
 
 // ---- offline / install ----
@@ -1055,10 +1329,25 @@ async function tidyPhotos(){
   }catch(e){ console.warn(e); }
 }
 
-renderHome();
-tidyPhotos();
-track("/");   // one page view per load; the address and its link data are never sent
-consumeHash();
+// ---- language picker and start ----
+$("langSel").onchange = e => setLang(e.target.value, true);
+function boot(){
+  if(booted) return; booted = true;
+  applyI18n();
+  renderHome();
+  tidyPhotos();
+  track("/");   // one page view per load; the address and its link data are never sent
+  consumeHash();
+}
+// English starts at once. Another language starts as soon as its file has loaded (or failed to: then in English);
+// if that takes too long the game starts in English and switches when the file arrives.
+(function(){
+  const first = initialLang();
+  if(first==="en") return boot();
+  $("home").classList.add("hidden");
+  setLang(first).then(boot);
+  setTimeout(boot, 3000);
+})();
 
 </script>
 </body>
