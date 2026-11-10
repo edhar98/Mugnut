@@ -762,7 +762,7 @@ function fitShort(c, img){
 }
 const WEBP_OK = (()=>{ try{ const c=document.createElement("canvas"); c.width=c.height=2; return c.toDataURL("image/webp").startsWith("data:image/webp"); }catch(e){ return false; } })();
 // the small preview that travels in links; `full` only exists on records not yet moved to IndexedDB
-const imgSrc = c => (typeof c.full==="string" && c.full) || `data:${c.mime||"image/jpeg"};base64,${c.thumb}`;
+const imgSrc = c => (isPhoto(c.full) && c.full) || `data:${c.mime||"image/jpeg"};base64,${c.thumb}`;
 const isPhoto = u => typeof u==="string" && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(u);
 
 // Sharp copies of photos live in IndexedDB (database "mugnut", store "photos", key = challenge id, value = data URL),
@@ -770,28 +770,43 @@ const isPhoto = u => typeof u==="string" && /^data:image\/(jpeg|png|webp);base64
 // If IndexedDB is unavailable (some private modes) every call resolves empty and the game runs on previews alone.
 const Photos = (()=>{
   let dbp = null;
+  // a lost or failed connection is forgotten, so the next call opens a new one
   const open = () => dbp || (dbp = new Promise((res, rej)=>{
+    const fail = e => { dbp = null; rej(e); };
     try{
+      const t = setTimeout(()=>fail(new Error("timeout")), 4000);   // some browsers never answer
       const r = indexedDB.open("mugnut", 1);
       r.onupgradeneeded = () => { if(!r.result.objectStoreNames.contains("photos")) r.result.createObjectStore("photos"); };
-      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); r.onblocked = () => rej(new Error("blocked"));
-    }catch(e){ rej(e); }
+      r.onsuccess = () => { clearTimeout(t); const db = r.result;
+        db.onclose = () => { dbp = null; };
+        db.onversionchange = () => { dbp = null; try{ db.close(); }catch(e){} };   // let another tab upgrade
+        res(db); };
+      r.onerror = () => { clearTimeout(t); fail(r.error); }; r.onblocked = () => { clearTimeout(t); fail(new Error("blocked")); };
+    }catch(e){ fail(e); }
   }));
-  const run = (mode, fn) => open().then(db => new Promise((res, rej)=>{
-    const tx = db.transaction("photos", mode), rq = fn(tx.objectStore("photos"));
+  const once = (mode, fn) => open().then(db => new Promise((res, rej)=>{
+    let tx; try{ tx = db.transaction("photos", mode); }catch(e){ dbp = null; return rej(e); }   // connection closed under us
+    const rq = fn(tx.objectStore("photos"));
     tx.oncomplete = () => res(rq.result); tx.onerror = tx.onabort = () => rej(tx.error);
   }));
+  const run = (mode, fn) => once(mode, fn).catch(() => once(mode, fn));   // one retry on a fresh connection
   return {
     get: id => run("readonly", s=>s.get(id)).then(u => isPhoto(u) ? u : null, () => null),
     put: (id, url) => isPhoto(url) ? run("readwrite", s=>s.put(url, id)).then(()=>true, ()=>false) : Promise.resolve(false),
     del: id => run("readwrite", s=>s.delete(id)).then(()=>true, ()=>false),
-    keys: () => run("readonly", s=>s.getAllKeys()).then(k => k || [], () => null),
+    keys: () => run("readonly", s=>s.getAllKeys()).then(k => k || [], () => null),   // null: the store cannot be read
   };
 })();
 // show a challenge's photo: the preview at once, then the sharp copy if there is one
 function showPhoto(img, c){
   img.dataset.cid = c.id; img.src = imgSrc(c);
-  if(c.sharp) Photos.get(c.id).then(u => { if(u && img.dataset.cid===c.id){ delete img.dataset.ph; img.classList.remove("tiny"); img.src = u; } });
+  if(c.sharp) Photos.get(c.id).then(async u => {
+    if(u){ if(img.dataset.cid===c.id){ delete img.dataset.ph; img.classList.remove("tiny"); img.src = u; } return; }
+    // the store works but the photo is gone (cleared storage, say): stop promising a sharp copy so it can be added again
+    const keys = await Photos.keys(); if(!keys || keys.includes(c.id)) return;
+    const d = DB.load(), r = own(d.mine, c.id) || own(d.received, c.id); if(r && r.sharp){ delete r.sharp; DB.save(d); }
+    c.sharp = false; img.dispatchEvent(new CustomEvent("nosharp"));
+  });
   return img;
 }
 // mark a record as having a sharp copy (re-reads storage: this runs after an await)
@@ -862,8 +877,8 @@ function handleHash(raw){
           g, thumb:incoming, mime: x.m==="w" ? "image/webp" : "image/jpeg", createdAt:+x.at||Date.now(), openedAt:Date.now(), guess:null};
         // keep at most MAX_RECEIVED: the oldest answered ones go first
         const extra = Object.values(d.received).sort((a,b)=>(a.guess==null)-(b.guess==null) || (a.openedAt||0)-(b.openedAt||0)).slice(0, Math.max(0, Object.keys(d.received).length - MAX_RECEIVED));
-        extra.forEach(c=>{ if(c.id!==id){ delete d.received[c.id]; Photos.del(c.id); } });
-        DB.save(d);
+        const gone = extra.filter(c=>c.id!==id).map(c=>c.id); gone.forEach(k=>{ delete d.received[k]; });
+        if(DB.save(d)) gone.forEach(k=>Photos.del(k));
         track("challenge-opened");
       }
       openPlay(id);
@@ -1017,7 +1032,12 @@ async function handleFile(file){
 $("camIn").onchange = e=>{ handleFile(e.target.files[0]); e.target.value=""; };
 $("galIn").onchange = e=>{ handleFile(e.target.files[0]); e.target.value=""; };
 
-$("postBtn").onclick = async ()=>{
+let posting = false;
+$("postBtn").onclick = ()=>{
+  if(posting) return;   // a second tap while the first is still being handled
+  posting = true; try{ post(); } finally{ posting = false; }
+};
+function post(){
   const name = clean($("chName").value,50), note = clean($("chNote").value,160), from = clean($("myName").value,24);
   if(!draft.thumb) return $("chErr").textContent = "Add a photo first.";
   if(!name) return $("chErr").textContent = "Give the object a name.";
@@ -1031,7 +1051,8 @@ $("postBtn").onclick = async ()=>{
   if(!d.postedDays.includes(localDay())) d.postedDays.push(localDay());
   DB.save(d);   // if storage is blocked we still let them share
   track("challenge-created");
-  if(await Photos.put(c.id, full)){ c.sharp = true; markSharp(c.id); }
+  draft = {photo:null, thumb:null, g:null};   // used up: nothing left for a repeated tap to post
+  Photos.put(c.id, full).then(ok => { if(ok) markSharp(c.id); });   // in the background: sharing never waits for storage
   openShare(c, photo);
 };
 
@@ -1117,6 +1138,7 @@ function openPlay(id){
   $("plImg").classList.remove("tiny"); delete $("plImg").dataset.ph;
   let hasSharp = !!(c.sharp || c.full);
   $("plImg").onload = e=>{ if(!e.target.dataset.ph) e.target.classList.toggle("tiny", !hasSharp && e.target.naturalWidth < 240); };
+  $("plImg").addEventListener("nosharp", () => { if($("plImg").dataset.cid===id){ hasSharp = false; $("plFullLbl").classList.remove("hidden"); } }, {once:true});
   showPhoto($("plImg"), c); $("plImg").alt = c.name;
   $("plFullLbl").classList.toggle("hidden", hasSharp);
   $("plFullIn").onchange = async e=>{

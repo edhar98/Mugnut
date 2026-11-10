@@ -43,9 +43,9 @@ test("a new challenge keeps its sharp photo in IndexedDB, not in localStorage", 
   const errors = watchErrors(page);
   await page.goto("./");
   const id = await create(page);
+  await expect.poll(async () => (await friends(page)).mine[id].sharp).toBe(true); // stored in the background
   const rec = (await friends(page)).mine[id];
   expect(rec.full).toBeUndefined();
-  expect(rec.sharp).toBe(true);
   expect(rec.thumb.length).toBeGreaterThan(100);
   const store = await idb(page);
   expect(Object.keys(store)).toEqual([id]);
@@ -53,7 +53,8 @@ test("a new challenge keeps its sharp photo in IndexedDB, not in localStorage", 
   expect(JSON.stringify(await friends(page)).length).toBeLessThan(40000); // previews only
 
   // the sharp copy is what is shown, also after a reload
-  await expect.poll(() => page.locator("#shCard img").evaluate(i => i.naturalWidth)).toBe(900);
+  await page.locator("#shareBack").click();
+  await expect.poll(() => page.locator("#feed img").first().evaluate(i => i.naturalWidth)).toBe(900);
   await page.reload();
   await page.locator("#friendsBtn").click();
   await expect.poll(() => page.locator("#feed img").first().evaluate(i => i.naturalWidth)).toBe(900);
@@ -68,6 +69,7 @@ test("a new challenge keeps its sharp photo in IndexedDB, not in localStorage", 
 test("deleting a challenge deletes its photo", async ({ page }) => {
   await page.goto("./");
   const id = await create(page);
+  await expect.poll(async () => Object.keys(await idb(page))).toEqual([id]);
   await page.locator("#shareBack").click();
   const del = page.locator(`[data-del="${id}"]`);
   await del.click();
@@ -140,6 +142,7 @@ test("picking the photo from the chat stores the sharp copy and it stays after a
   await page.goto("./");
   await create(page, "Mug");
   await page.locator("#shCopy").click();
+  await expect.poll(async () => Object.keys(await idb(page)).length).toBe(1);
   const link = (await lastCopied(page)).split("\n").pop();
 
   const ctx = await newPhone(browser, testInfo);
@@ -216,4 +219,72 @@ test("what a link can store is bounded: oversized previews are dropped and old r
   expect(rec.new1).toBeTruthy();
   expect(rec.old1).toBeUndefined();  // the oldest answered one made room
   expect(rec.old0).toBeTruthy();     // unanswered ones are kept
+});
+
+test("a double tap on Create challenge creates one challenge", async ({ page }) => {
+  await page.goto("./");
+  await page.locator("#friendsBtn").click();
+  await page.locator("#newChBtn").click();
+  await page.locator("#galIn").setInputFiles(PHOTO);
+  await expect(page.locator("#previewCard")).toBeVisible();
+  await page.locator("#chName").fill("Once");
+  await page.locator('#chOpts .opt[data-g="1"]').click();
+  await page.locator("#myName").fill("Alice");
+  await page.locator("#postBtn").dblclick();
+  await expect(page.locator("#share")).toBeVisible();
+  // and a third, programmatic one once the share screen is up
+  await page.evaluate(() => document.getElementById("postBtn").click());
+  await page.waitForTimeout(300);
+  expect(Object.keys((await friends(page)).mine)).toHaveLength(1);
+  await expect(page.locator("#share")).toBeVisible();
+});
+
+test("if IndexedDB never answers, creating and sharing still works, once", async ({ page }) => {
+  await page.addInitScript(() => { Object.defineProperty(window, "indexedDB", { value: { open() { return {}; } }, configurable: true }); }); // open() that never fires
+  await page.goto("./");
+  const id = await create(page, "Patient");
+  await page.locator("#shCopy").click();
+  expect(await lastCopied(page)).toContain("#c=");
+  const d = await friends(page);
+  expect(Object.keys(d.mine)).toEqual([id]);
+  expect(d.mine[id].sharp).toBeUndefined();
+});
+
+test("a record that promises a sharp photo which is gone lets the player add it again", async ({ page, browser }, testInfo) => {
+  await page.goto("./");
+  await create(page, "Mug");
+  await page.locator("#shCopy").click();
+  const link = (await lastCopied(page)).split("\n").pop();
+  const ctx = await newPhone(browser, testInfo);
+  const bob = await ctx.newPage();
+  await bob.goto(link);
+  await bob.locator("#plFullIn").setInputFiles(PHOTO);
+  await expect.poll(async () => Object.keys(await idb(bob)).length).toBe(1);
+  // the photo store is wiped while the record stays (browser storage partly cleared)
+  await bob.evaluate(() => new Promise(res => { const r = indexedDB.open("mugnut", 1); r.onsuccess = () => { const tx = r.result.transaction("photos", "readwrite"); tx.objectStore("photos").clear(); tx.oncomplete = () => { r.result.close(); res(); }; }; }));
+  await bob.goto("./");
+  await bob.reload();
+  await bob.locator("#friendsBtn").click();
+  await bob.getByRole("button", { name: "Play" }).click();
+  await expect(bob.locator("#plFullLbl")).toBeVisible();
+  await expect.poll(async () => Object.values((await friends(bob)).received)[0].sharp).toBeUndefined();
+  await bob.locator("#plFullIn").setInputFiles(PHOTO);
+  await expect(bob.locator("#plFullLbl")).toBeHidden();
+  await expect.poll(async () => Object.keys(await idb(bob)).length).toBe(1);
+  await ctx.close();
+});
+
+test("a migration interrupted after the photo was stored finishes on the next load", async ({ page }) => {
+  await page.goto("./");
+  const big = await jpeg(page, 900, 600), small = (await jpeg(page, 60, 40)).split(",")[1];
+  // photo already in IndexedDB, record still carrying `full` (the tab closed between the two steps)
+  await page.evaluate(([big, small]) => new Promise(res => {
+    localStorage.setItem("mugnut:friends", JSON.stringify({ mine: { m1: { id: "m1", name: "Half moved", note: "", from: "Alice", g: 1, thumb: small, mime: "image/jpeg", full: big, createdAt: 1, guesses: [] } }, received: {}, postedDays: [] }));
+    const r = indexedDB.open("mugnut", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("photos");
+    r.onsuccess = () => { const tx = r.result.transaction("photos", "readwrite"); tx.objectStore("photos").put(big, "m1"); tx.oncomplete = () => { r.result.close(); res(); }; };
+  }), [big, small]);
+  await page.reload();
+  await expect.poll(async () => { const c = (await friends(page)).mine.m1; return [c.full, c.sharp]; }).toEqual([undefined, true]);
+  expect(await page.evaluate(big => new Promise(res => { const r = indexedDB.open("mugnut", 1); r.onsuccess = () => { const q = r.result.transaction("photos").objectStore("photos").get("m1"); q.onsuccess = () => { r.result.close(); res(q.result === big); }; }; }), big)).toBe(true); // byte for byte
 });
