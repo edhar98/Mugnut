@@ -24,7 +24,6 @@ Updated: 2026-11-10
 - Phase 1 — validation features (analytics hook, daily archive and countdown, Open Graph image, automatic cache version, photos in IndexedDB).
 
 ## Blocked on the human
-- **Push, pull request and merge of `daily-mode`**: the `GrishaKh` collaborator invitation is not accepted yet, so GitHub refuses the push (403). The live site is unchanged. Steps in `HUMAN_TODO.md`.
 - Analytics site code (Gate 0): not blocking, analytics stays off until it arrives.
 
 ## Backlog notes
