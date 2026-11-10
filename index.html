@@ -103,6 +103,13 @@
   .filebtn{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;border:1.5px dashed #c9bfa9;border-radius:14px;padding:18px 8px;background:#fff;font-weight:600;cursor:pointer;text-align:center}
   .filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
   .err{color:var(--bad);font-size:14px;margin-top:8px;min-height:18px}
+  .under{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:-6px 4px -4px;font-size:14px}
+  .arlist{display:grid;gap:8px}
+  .arrow{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;cursor:pointer;color:var(--ink);font-size:15px}
+  .arrow b{font-weight:600}
+  .arrow small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+  .arrow .st{flex:none;font-weight:600;color:var(--accent)}
+  .arrow .st.good{color:var(--good)} .arrow .st.bad{color:var(--bad)}
   .hidden{display:none!important}
 </style>
 </head>
@@ -118,6 +125,7 @@
       <div class="row"><h3>Today's object</h3><span class="tag" id="dTag"></span></div>
       <p>One object a day, the same for everyone. Guess it, then dare a friend.</p>
     </button>
+    <div class="under hidden" id="archiveRow"><span class="muted" id="dNext"></span><button class="link" id="archiveBtn">Past objects</button></div>
     <button class="mode" id="journeyBtn">
       <div class="row"><h3>Journey</h3><span class="tag" id="jBest"></span></div>
       <p>Start easy and climb to expert. 24 objects, 3 lives.</p>
@@ -180,6 +188,14 @@
     <button class="btn" id="againBtn">Play again</button>
     <button class="btn ghost" id="homeBtn">Menu</button>
   </div>
+</section>
+
+<!-- DAILY ARCHIVE -->
+<section id="archive" class="hidden">
+  <div class="back"><button class="link" data-home>← Menu</button></div>
+  <h2>Past objects</h2>
+  <p class="muted" style="margin-top:0" id="arSummary"></p>
+  <div class="arlist" id="arList"></div>
 </section>
 
 <!-- FRIENDS -->
@@ -493,7 +509,7 @@ const shapeName = g => g===5 ? "genus 5 or more" : `${SHAPES[g].toLowerCase()} (
 
 // ---------- helpers ----------
 const $ = id => document.getElementById(id);
-const SCREENS = ["home","interlude","game","end","friends","create","share","play"];
+const SCREENS = ["home","interlude","game","end","archive","friends","create","share","play"];
 function show(id){ SCREENS.forEach(s=>$(s).classList.toggle("hidden", s!==id)); window.scrollTo(0,0); }
 const store = {get(k){try{return JSON.parse(localStorage.getItem("mugnut:"+k))}catch(e){return null}}, set(k,v){try{localStorage.setItem("mugnut:"+k,JSON.stringify(v))}catch(e){}}};
 const shuffle = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]} return a; };
@@ -529,8 +545,11 @@ function track(event){
 function renderHome(){
   const jb = store.get("best-journey");
   $("jBest").textContent = jb ? `Best ${jb}/24` : "";
-  const dd = store.get("daily");
-  $("dTag").textContent = dd && dd.day===localDay() ? `${dd.ok?"✓":"✗"} Done · streak ${dd.streak}` : `#${dailyNum()}`;
+  const dd = store.get("daily"), doneToday = dd && dd.day===localDay();
+  $("dTag").textContent = doneToday ? `${dd.ok?"✓":"✗"} Done · streak ${dd.streak}` : `#${dailyNum()}`;
+  $("dNext").dataset.countdown = doneToday ? "Next object in " : "";
+  $("archiveRow").classList.toggle("hidden", dailyNum() < 2);
+  tick();
   $("levelBtns").innerHTML = [1,2,3,4].map(lv=>{
     const b = store.get("best-"+lv);
     return `<button class="lvbtn" data-lv="${lv}"><b><span class="dot" style="background:${LEVELS[lv].c}"></span>${LEVELS[lv].n}</b><small>${b!=null?`Best ${b}/10`:LEVELS[lv].t}</small></button>`;
@@ -547,22 +566,42 @@ function startJourney(){
   track("round-start-journey");
   nextQuestion();
 }
-// today's object: the same for everyone on the same calendar day (cycles through all 100 objects)
-const DAY0 = new Date(2026, 10, 10);
-function dailyNum(){ const d=new Date(); return Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - DAY0)/864e5) + 1; }
-function dailyObject(){ const n=OBJECTS.length; return OBJECTS[(((dailyNum()*37 + 11) % n) + n) % n]; }
-function startDaily(){
-  const dd = store.get("daily"), done = dd && dd.day===localDay();
+// today's object: the same for everyone on the same calendar day
+const DAY0 = new Date(2026, 10, 10);   // day 1
+const dayNumOf = d => Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - DAY0)/864e5) + 1;
+const dateOfNum = n => new Date(2026, 10, 10 + n - 1);
+function dailyNum(){ return dayNumOf(new Date()); }
+// The rotation walks the first DAILY_POOL objects only, so adding objects later (always at the end of OBJECTS)
+// never changes which object belongs to which day. Do not reorder or remove the first DAILY_POOL entries.
+const DAILY_POOL = 100;
+function dailyObject(num=dailyNum()){ const n=DAILY_POOL; return OBJECTS[(((num*37 + 11) % n) + n) % n]; }
+// every daily object ever answered on this device, by day number: {g, ok}
+const dailyLog = {
+  all(){ const l = store.get("daily-log"); return l && typeof l==="object" && !Array.isArray(l) ? l : {}; },
+  get(num){ const l = dailyLog.all(), e = Object.prototype.hasOwnProperty.call(l, num) ? l[num] : null; return e && Number.isInteger(e.g) && e.g>=0 && e.g<=5 ? e : null; },
+  set(num, g, ok){ if(!Number.isInteger(num) || num<1 || !Number.isInteger(g) || g<0 || g>5) return; const l = dailyLog.all(); l[num] = {g, ok:!!ok}; store.set("daily-log", l); },
+};
+// answers given before the archive existed
+(function(){ const dd = store.get("daily"); if(!dd || typeof dd.day!=="string") return;
+  const [y,m,d] = dd.day.split("-").map(Number), num = Number.isInteger(dd.num) ? dd.num : dayNumOf(new Date(y, m-1, d));
+  if(Number.isInteger(num) && num>=1 && num<=dailyNum() && Number.isInteger(dd.g) && dd.g>=0 && dd.g<=5 && !dailyLog.get(num)) dailyLog.set(num, dd.g, !!dd.ok); })();
+// num: a past day number from the archive; omitted for today's object
+function startDaily(num){
+  const today = dailyNum(), archive = Number.isInteger(num) && num >= 1 && num < today;
+  if(!archive) num = today;
+  // the log is the record of what was answered; an answered day stays answered whatever the clock says now
+  const dd = store.get("daily"), past = dailyLog.get(num) || (!archive && dd && dd.day===localDay() && Number.isInteger(dd.g) ? dd : null);
+  const done = !!past;
   // the day and number are fixed when the object is shown, so answering after midnight still counts for that day
-  G = {mode:"daily", deck:[dailyObject()], idx:0, score:0, lives:null, missed:[], lastLv:0, replay:done, day:localDay(), num:dailyNum()};
+  G = {mode:"daily", archive, deck:[dailyObject(num)], idx:0, score:0, lives:null, missed:[], lastLv:0, replay:done, day:localDay(), num};
   show("game"); renderQ();
-  if(done) answer(dd.g);
+  if(done) answer(past.g);
 }
 function shareDaily(){
   const dd = store.get("daily") || {};
   track("share-daily");
   const text = `Mugnut #${dd.num ?? dailyNum()} 🍩 ${dd.ok ? "✅ Got it" : "❌ It fooled me"}${dd.streak>1 ? ` · ${dd.streak}-day streak` : ""}\nIs today's object a donut?`;
-  const done = m => { $("verdict").textContent = m; };
+  const done = m => { delete $("verdict").dataset.countdown; $("verdict").textContent = m; };
   const copy = () => {
     const manual = () => done(`Copy this: ${text} ${APP_URL}`);
     if(!navigator.clipboard) return manual();
@@ -601,10 +640,14 @@ function renderQ(){
   optionButtons($("opts"), answer);
 }
 function answer(g){
+  // answered meanwhile somewhere else (another tab, or from the archive): show that answer, it cannot be changed
+  if(G.mode==="daily" && !G.replay){ const rec = dailyLog.get(G.num); if(rec){ G.replay = true; g = rec.g; } }
   const o = G.deck[G.idx], ok = g===o.g;
   $("opts").querySelectorAll(".opt").forEach(b=>{ const bg=+b.dataset.g; b.disabled=true; if(bg===o.g) b.classList.add("correct"); else if(bg===g) b.classList.add("wrong"); });
   if(ok) G.score++; else { G.missed.push({o,g}); if(G.lives!=null) G.lives--; }
-  if(G.mode==="daily" && !G.replay){
+  if(G.mode==="daily" && !G.replay) dailyLog.set(G.num, g, ok);
+  if(G.mode==="daily" && !G.replay && G.archive) track("archive-played");
+  if(G.mode==="daily" && !G.replay && !G.archive){
     // yesterday by the calendar, not 24 hours ago: days are 23 or 25 hours long when the clocks change
     const prev = store.get("daily"), [y,m,d] = G.day.split("-").map(Number), yest = localDay(new Date(y, m-1, d-1));
     store.set("daily", {day:G.day, num:G.num, g, ok, streak: prev && prev.day===yest ? (prev.streak||0)+1 : 1});
@@ -623,13 +666,19 @@ $("nextBtn").onclick = ()=>{ G.idx++; nextQuestion(); };
 function finish(){
   const total = G.deck.length;
   $("final").textContent = `${G.score}/${total}`;
-  $("againBtn").textContent = G.mode==="daily" ? "Share result" : "Play again";
+  $("againBtn").textContent = G.mode!=="daily" ? "Play again" : G.archive ? "Back to past objects" : "Share result";
+  delete $("verdict").dataset.countdown; delete $("verdict").dataset.until; delete $("verdict").dataset.after;
   if(G.mode!=="daily") track("round-finish-" + (G.mode==="journey" ? "journey" : "level-"+G.lv));
   if(G.mode==="daily"){
     const dd = store.get("daily") || {streak:1};
-    $("endTitle").textContent = `Today's object #${G.num}`;
+    $("endTitle").textContent = G.archive ? `Object #${G.num} · ${shortDate(dateOfNum(G.num))}` : `Today's object #${G.num}`;
     $("final").textContent = G.score ? "✓" : "✗";
-    $("verdict").textContent = `Day streak: ${dd.streak}. A new object arrives tomorrow.`;
+    if(G.archive) $("verdict").textContent = "From the archive. Past objects don't change your streak.";
+    else {
+      const v = $("verdict"), waiting = `Day streak: ${dd.streak}. A new object is waiting.`;
+      if(G.num===dailyNum()){ v.dataset.countdown = `Day streak: ${dd.streak}. Next object in `; v.dataset.until = localDay(); v.dataset.after = waiting; tick(); }
+      else v.textContent = waiting;
+    }
   } else if(G.mode==="journey"){
     const reached = G.deck[Math.min(G.idx, total-1)].lv;
     $("endTitle").textContent = G.lives===0 ? "Journey over" : "Journey complete!";
@@ -646,8 +695,47 @@ function finish(){
   G.missed.forEach(m=>$("review").append(el("li",{}, el("span",{text: m.o.name + (m.o.sub?` (${m.o.sub})`:"")}), el("em",{html:`${SHAPES[m.o.g]}<br><small>you said ${SHAPES[m.g].toLowerCase()}</small>`}))));
   show("end");
 }
-$("againBtn").onclick = ()=> G.mode==="daily" ? shareDaily() : G.mode==="journey" ? startJourney() : startLevel(G.lv);
-$("dailyBtn").onclick = startDaily;
+$("againBtn").onclick = ()=> G.mode==="daily" ? (G.archive ? openArchive() : shareDaily()) : G.mode==="journey" ? startJourney() : startLevel(G.lv);
+$("dailyBtn").onclick = ()=>startDaily();
+$("archiveBtn").onclick = openArchive;
+
+// countdown to local midnight, written into any element carrying data-countdown="<text before the time>"
+function untilTomorrow(){
+  const n = new Date(), ms = new Date(n.getFullYear(), n.getMonth(), n.getDate()+1) - n, t = Math.max(0, Math.ceil(ms/1000));
+  const h = Math.floor(t/3600), m = Math.floor(t%3600/60), sec = t%60;
+  return h ? `${h}h ${String(m).padStart(2,"0")}m` : m ? `${m}m ${String(sec).padStart(2,"0")}s` : `${sec}s`;
+}
+let tickDay = null;
+function tick(){
+  const today = localDay();
+  // the day rolled over while the menu was open: show the new object
+  if(tickDay && tickDay!==today && !$("home").classList.contains("hidden")){ tickDay = today; return renderHome(); }
+  tickDay = today;
+  document.querySelectorAll("[data-countdown]").forEach(e=>{
+    // counting down to a day that has now arrived: say so instead of starting on the next 24 hours
+    if(e.dataset.until && e.dataset.until!==today){ e.textContent = e.dataset.after || ""; delete e.dataset.countdown; delete e.dataset.until; return; }
+    if(e.dataset.countdown) e.textContent = e.dataset.countdown + untilTomorrow() + "."; else if(e.id==="dNext") e.textContent = "";
+  });
+}
+setInterval(tick, 1000);
+
+// ---- daily archive: every earlier day, newest first ----
+const shortDate = d => d.toLocaleDateString(undefined, {month:"short", day:"numeric"});
+const ARCHIVE_DAYS = 60;
+function openArchive(){
+  const today = dailyNum(), list = $("arList"); list.innerHTML = "";
+  let played = 0, right = 0, total = 0;
+  for(let n=today-1; n>=1 && n>today-1-ARCHIVE_DAYS; n--){
+    const e = dailyLog.get(n), o = dailyObject(n); total++;
+    if(e){ played++; if(e.ok) right++; }
+    list.append(el("button",{class:"arrow", "data-num":n, onclick:()=>startDaily(n)},
+      el("span",{}, el("b",{text:`#${n} · ${shortDate(dateOfNum(n))}`}), el("small",{text: e ? o.name + (o.sub?` (${o.sub})`:"") : "Not played yet"})),
+      el("span",{class:"st"+(e?(e.ok?" good":" bad"):""), text: e ? (e.ok?"✓":"✗") : "Play"})));
+  }
+  $("arSummary").textContent = total ? `${played} of ${total} played${played?`, ${right} correct`:""}. Past objects don't change your streak.` : "Nothing here yet. Come back tomorrow.";
+  track("archive-opened");
+  show("archive");
+}
 $("homeBtn").onclick = renderHome;
 $("quitBtn").onclick = renderHome;
 $("journeyBtn").onclick = startJourney;
