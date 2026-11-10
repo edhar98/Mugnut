@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Mugnut</string>
+    <string name="title_activity_main">Mugnut</string>
+    <string name="package_name">app.mugnut.game</string>
+    <string name="custom_url_scheme">app.mugnut.game</string>
+</resources>

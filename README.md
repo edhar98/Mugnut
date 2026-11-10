@@ -54,6 +54,16 @@ git config core.hooksPath .githooks
 
 Phones fetch the new version on their next visit.
 
+## Native apps
+
+`ios/` and `android/` are Capacitor projects that package the same web files. The web version does not depend on them.
+
+```
+npm run cap:sync:mock
+```
+
+copies the game into `dist/`, with a simulated store so the one-time unlock can be tried without store accounts, and syncs both projects; `npm run cap:sync` does the same for store builds. `npm run ios` and `npm run android` open them in Xcode and Android Studio. `native.js` is the only place that talks to native plugins; on the web it does nothing. See `HUMAN_TODO.md` for what is needed to build and publish.
+
 ## Privacy
 
 Mugnut has no accounts, no ads and no cookies, and your names, photos, answers and challenge links stay on your phone.
@@ -66,7 +76,7 @@ To see whether anyone plays, the live site (and only the live site) sends counts
 
 Never sent: the page address, anything after `#` in a link (which is where challenges travel), names, notes, photos, answers, or any identifier. Nothing is stored on your device for this.
 
-Nothing at all is sent if your browser asks not to be tracked (Do Not Track or Global Privacy Control), or from any copy of the game that is not the live site (a file on disk, a local server, a fork). Setting `ANALYTICS = ""` in `index.html` switches it off completely.
+The iPhone and Android apps send nothing at all. On the web, nothing is sent if your browser asks not to be tracked (Do Not Track or Global Privacy Control), or from any copy of the game that is not the live site (a file on disk, a local server, a fork). Setting `ANALYTICS = ""` in `index.html` switches it off completely.
 
 ## Development
 

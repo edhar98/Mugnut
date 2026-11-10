@@ -2,16 +2,35 @@
   "name": "mugnut",
   "version": "0.1.0",
   "private": true,
-  "description": "Mugnut: a game about the topology of everyday objects. The game itself has no build step and no runtime dependencies; this file only holds test tooling.",
+  "description": "Mugnut: a game about the topology of everyday objects. The web game has no build step and no runtime dependencies; the dependencies here are the native app shell (Capacitor) and test tooling.",
   "scripts": {
     "serve": "http-server . -p 4173 -c-1 --silent",
     "stamp": "node tools/stamp.js",
     "test": "playwright test",
-    "test:chromium": "playwright test --project=android-chrome"
+    "test:chromium": "playwright test --project=android-chrome",
+    "build:web": "node tools/build-web.js",
+    "build:web:mock": "node tools/build-web.js --mock-store",
+    "cap:sync": "node tools/build-web.js && cap sync",
+    "cap:sync:mock": "node tools/build-web.js --mock-store && cap sync",
+    "ios": "cap open ios",
+    "android": "cap open android"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.56.0",
     "http-server": "^14.1.1"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/camera": "^8.2.6",
+    "@capacitor/cli": "^8.6.0",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.6.0",
+    "@capacitor/local-notifications": "^8.3.1",
+    "@capacitor/share": "^8.0.3",
+    "@capgo/native-purchases": "^8.9.8"
   }
 }

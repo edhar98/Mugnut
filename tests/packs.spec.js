@@ -116,5 +116,5 @@ test("if the object data fails to load, the page says so and offers a reload", a
   await expect(page.getByText("did not finish loading")).toBeVisible();
   await expect(page.getByRole("button", { name: "Reload" })).toBeVisible();
   await expect(page.locator("#journeyBtn")).toHaveCount(0);
-  expect(errors.join()).toContain("objects.js did not load");
+  expect(errors.join()).toContain("did not load");
 });

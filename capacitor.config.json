@@ -1,0 +1,9 @@
+{
+  "appId": "app.mugnut.game",
+  "appName": "Mugnut",
+  "webDir": "dist",
+  "ios": { "contentInset": "never" },
+  "plugins": {
+    "LocalNotifications": { "smallIcon": "ic_stat_icon", "iconColor": "#1f2a44" }
+  }
+}
