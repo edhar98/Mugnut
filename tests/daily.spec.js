@@ -1,6 +1,5 @@
 // Daily mode: one object per calendar day, locked after answering, with a day streak.
-const { test, expect } = require("@playwright/test");
-const { watchErrors, stubSharing, lastCopied, answerCurrent } = require("./helpers");
+const { test, expect, watchErrors, stubSharing, lastCopied, answerCurrent } = require("./helpers");
 
 // Wall-clock time in the browser's pinned zone (Asia/Yerevan, UTC+4, no DST), whatever zone the test runner is in.
 const at = (y, m, d, h = 10, min = 0) => new Date(Date.UTC(y, m - 1, d, h - 4, min, 0));

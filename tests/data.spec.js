@@ -1,5 +1,5 @@
 // OBJECTS data integrity: runs against the real page so it checks what ships.
-const { test, expect } = require("@playwright/test");
+const { test, expect } = require("./helpers");
 
 test("OBJECTS has valid levels, genus values, unique names and drawable art", async ({ page }) => {
   await page.goto("./");

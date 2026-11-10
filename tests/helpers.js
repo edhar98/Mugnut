@@ -1,5 +1,21 @@
 // Shared helpers for the Mugnut smoke suite.
-const { expect } = require("@playwright/test");
+const base = require("@playwright/test");
+const { expect } = base;
+
+/**
+ * Every context in the suite: analytics hits are captured in window.__hits instead of being sent
+ * (so runs against the live site never reach the real counter), and anything that still tries is aborted.
+ */
+async function quiet(context) {
+  await context.route(/goatcounter\.com|gc\.zgo\.at/, r => r.abort());
+  await context.addInitScript(() => {
+    window.__hits = [];
+    try { Object.defineProperty(navigator, "sendBeacon", { value: u => { window.__hits.push(String(u)); return true; }, configurable: true }); } catch (e) {}
+  });
+}
+const test = base.test.extend({
+  context: async ({ context }, use) => { await quiet(context); await use(context); },
+});
 
 // Top-level `const`/`let` in the game's classic script (OBJECTS, G, store, shareCtx…)
 // are reachable by name from page.evaluate, though not as window properties.
@@ -31,6 +47,7 @@ async function newPhone(browser, testInfo) {
     deviceScaleFactor: u.deviceScaleFactor, isMobile: u.isMobile, hasTouch: u.hasTouch,
     timezoneId: u.timezoneId, locale: u.locale, serviceWorkers: "block",
   });
+  await quiet(context);
   await stubSharing(context);
   return context;
 }
@@ -46,4 +63,4 @@ async function answerCurrent(page, correct) {
   return pick;
 }
 
-module.exports = { watchErrors, stubSharing, lastCopied, newPhone, currentAnswer, answerCurrent };
+module.exports = { test, expect, quiet, watchErrors, stubSharing, lastCopied, newPhone, currentAnswer, answerCurrent };

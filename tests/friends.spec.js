@@ -1,7 +1,6 @@
 // Friend challenges: the whole link round trip between two phones with separate storage.
 const path = require("path");
-const { test, expect } = require("@playwright/test");
-const { watchErrors, stubSharing, lastCopied, newPhone } = require("./helpers");
+const { test, expect, watchErrors, stubSharing, lastCopied, newPhone } = require("./helpers");
 
 const PHOTO = path.join(__dirname, "fixtures", "photo.jpg");
 const linkIn = text => text.split("\n").pop();

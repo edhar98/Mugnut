@@ -2,7 +2,7 @@
 
 A phone game about the topology of everyday objects — because to a topologist, a mug is a donut. Is it a sphere, a torus, a double torus…? It has 100 hand-drawn objects in 4 levels, a Journey mode, and photo challenges you send to friends.
 
-It runs entirely in the browser: no server, no account, no tracking, and it works offline once loaded.
+It runs entirely in the browser: no server, no account, no ads, and it works offline once loaded. The only thing it reports is anonymous usage counts (see Privacy below).
 
 ## Files
 
@@ -51,6 +51,10 @@ git config core.hooksPath .githooks
 ```
 
 Phones fetch the new version on their next visit.
+
+## Privacy
+
+Mugnut collects no personal data and sets no cookies. To see whether anyone plays, the live site sends anonymous counts to [GoatCounter](https://www.goatcounter.com), an open-source, cookieless counter: one page view per visit and a fixed event name when a round starts or finishes, the daily object is played, a share button is tapped, or a challenge is created, opened or answered. Names, photos, answers and the contents of challenge links never leave your phone. Nothing is sent if your browser asks not to be tracked (Do Not Track or Global Privacy Control), or when the game runs from a file or a local server. Set `ANALYTICS = ""` in `index.html` to switch it off completely.
 
 ## Development
 
