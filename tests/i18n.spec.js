@@ -497,3 +497,26 @@ test.describe("offline", () => {
     await context.setOffline(false);
   });
 });
+
+test("every object in the game, packs included, is translated into Armenian and Russian", async ({ page }) => {
+  await page.goto("./");
+  const problems = await page.evaluate(async () => {
+    const out = [];
+    for (const lang of ["hy", "ru"]) {
+      await loadLang(lang);
+      const table = (I18N[lang] || {}).obj || {}, seen = new Map(), script = lang === "hy" ? /[Ա-֏]/ : /[Ѐ-ӿ]/;
+      for (const o of OBJECTS) {
+        const key = `${o.name}|${o.sub || ""}`, tr = Object.prototype.hasOwnProperty.call(table, key) ? table[key] : null;
+        if (!tr) { out.push(`${lang}: missing ${key}`); continue; }
+        if (!tr.n || !script.test(tr.n) || tr.n.length > 28) out.push(`${lang}: bad name for ${key}`);
+        if (!tr.e || !script.test(tr.e) || tr.e.length > 140) out.push(`${lang}: bad explanation for ${key}`);
+        if (!!o.sub !== !!tr.s || (tr.s && tr.s.length > 40)) out.push(`${lang}: bad qualifier for ${key}`);
+        const shown = `${tr.n}|${tr.s || ""}`;
+        if (seen.has(shown)) out.push(`${lang}: ${key} and ${seen.get(shown)} read the same`); else seen.set(shown, key);
+      }
+      for (const key of Object.keys(table)) if (!OBJECTS.some(o => `${o.name}|${o.sub || ""}` === key)) out.push(`${lang}: translation for an object that does not exist: ${key}`);
+    }
+    return out;
+  });
+  expect(problems).toEqual([]);
+});

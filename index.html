@@ -23,9 +23,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Mugnut">
 <style>
-  :root{--bg:#f6f2e9;--card:#fffdf8;--ink:#1f2a44;--muted:#6b7280;--line:#e3dccd;--accent:#3d5a98;
-        --good:#2f8f5b;--bad:#c2453b;--goodbg:#e6f4ec;--badbg:#fbe9e7;
-        --l1:#2f8f5b;--l2:#3d5a98;--l3:#c27a1b;--l4:#b03a5b}
+  :root{--bg:#f6f2e9;--card:#fffdf8;--ink:#1f2a44;--muted:#5a6270;--line:#e3dccd;--accent:#3d5a98;
+        --good:#23784a;--bad:#ae382e;--goodbg:#e6f4ec;--badbg:#fbe9e7;
+        --l1:#23784a;--l2:#3d5a98;--l3:#96590c;--l4:#b03a5b}
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
   .wrap{max-width:560px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(48px + env(safe-area-inset-bottom));min-height:100vh}
@@ -38,8 +38,11 @@
   .btn{appearance:none;border:0;background:var(--ink);color:#fff;font-weight:600;font-size:16px;padding:14px 20px;border-radius:12px;cursor:pointer;width:100%}
   .btn:disabled{opacity:.45;cursor:default}
   .btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
-  .btn.small{width:auto;padding:9px 14px;font-size:14px;border-radius:10px}
-  .link{background:none;border:0;color:var(--accent);font-weight:600;font-size:15px;cursor:pointer;padding:6px 0}
+  .btn.small{width:auto;min-height:44px;padding:9px 14px;font-size:14px;border-radius:10px}
+  .link{background:none;border:0;color:var(--accent);font-weight:600;font-size:15px;cursor:pointer;padding:6px 0;min-height:44px}
+  :focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+  section:focus{outline:none}
+  .sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
   .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}
   .stack{display:grid;gap:12px}
   .mode{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;cursor:pointer;color:var(--ink)}
@@ -54,11 +57,12 @@
   .lvbtn small{color:var(--muted);font-size:12px}
   .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:1px}
   details{margin-top:14px}
-  summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  summary{cursor:pointer;font-weight:600;color:var(--accent);padding:13px 0}
   .rules{margin:10px 0 0;padding-left:20px;line-height:1.5}
   .rules li{margin-bottom:6px}
   .langrow{display:flex;align-items:center;gap:8px;margin-top:18px;font-size:14px;color:var(--muted)}
-  .langrow select{font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 8px;max-width:100%}
+  .langrow select{font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 30px 6px 10px;max-width:100%;height:44px;-webkit-appearance:none;appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%231f2a44' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:12px 8px}
   .top{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--muted);margin-bottom:8px;gap:8px}
   .top b{color:var(--ink)}
   .chip{display:inline-flex;align-items:center;font-size:12px;font-weight:700;padding:4px 9px;border-radius:999px;color:#fff;letter-spacing:.02em}
@@ -136,7 +140,7 @@
 <div class="wrap">
 
 <!-- HOME -->
-<section id="home">
+<section id="home" tabindex="-1">
   <h1>Mugnut</h1>
   <p class="muted" style="margin:0 0 18px"><span data-t="home.intro">To a topologist, a coffee mug and a donut are the same thing.</span> <span id="objCount">100</span> <span id="objRest">objects, 4 levels — can you see the world that way?</span></p>
   <div class="stack">
@@ -176,7 +180,7 @@
 </section>
 
 <!-- INTERLUDE -->
-<section id="interlude" class="hidden">
+<section id="interlude" class="hidden" tabindex="-1">
   <div class="interlude">
     <span class="chip" id="ilChip"></span>
     <div class="big" id="ilTitle"></div>
@@ -186,12 +190,12 @@
 </section>
 
 <!-- GAME -->
-<section id="game" class="hidden">
+<section id="game" class="hidden" tabindex="-1">
   <div class="top">
     <span><span class="chip" id="lvChip"></span> &nbsp;<b id="num">1</b>/<b id="tot">10</b></span>
     <span><span class="hearts" id="hearts"></span> &nbsp;<span data-t="game.score">Score</span> <b id="sc">0</b></span>
   </div>
-  <div class="bar"><i id="prog" style="width:0"></i></div>
+  <div class="bar" aria-hidden="true"><i id="prog" style="width:0"></i></div>
   <div class="card">
     <div class="pic" id="pic"></div>
     <div class="name" id="name"></div>
@@ -199,12 +203,12 @@
   </div>
   <div class="q" data-t="game.q">What is it, topologically?</div>
   <div class="opts" id="opts"></div>
-  <div class="fb" id="fb"><strong id="fbTitle"></strong><p id="fbText"></p><p class="marknote hidden" id="fbMarks"></p><button class="btn" id="nextBtn">Next</button></div>
+  <div class="fb" id="fb" role="status"><strong id="fbTitle"></strong><p id="fbText"></p><p class="marknote hidden" id="fbMarks"></p><button class="btn" id="nextBtn">Next</button></div>
   <div style="text-align:center;margin-top:12px"><button class="link" id="quitBtn" data-t="game.quit">Quit to menu</button></div>
 </section>
 
 <!-- END -->
-<section id="end" class="hidden">
+<section id="end" class="hidden" tabindex="-1">
   <h2 style="text-align:center;margin-top:10px" id="endTitle">Round complete</h2>
   <div class="score" id="final"></div>
   <p class="muted" style="text-align:center;margin-top:0" id="verdict"></p>
@@ -216,7 +220,7 @@
 </section>
 
 <!-- DAILY ARCHIVE -->
-<section id="archive" class="hidden">
+<section id="archive" class="hidden" tabindex="-1">
   <div class="back"><button class="link" data-home data-t="nav.menu">← Menu</button></div>
   <h2 data-t="archive.title">Past objects</h2>
   <p class="muted" style="margin-top:0" id="arSummary"></p>
@@ -224,7 +228,7 @@
 </section>
 
 <!-- FRIENDS -->
-<section id="friends" class="hidden">
+<section id="friends" class="hidden" tabindex="-1">
   <div class="back"><button class="link" data-home data-t="nav.menu">← Menu</button></div>
   <h2 data-t="friends.title">Friend challenges</h2>
   <div class="card streak">
@@ -245,7 +249,7 @@
 </section>
 
 <!-- CREATE -->
-<section id="create" class="hidden">
+<section id="create" class="hidden" tabindex="-1">
   <div class="back"><button class="link" id="createBack" data-t="nav.challenges">← Challenges</button></div>
   <h2 data-t="create.title">New photo challenge</h2>
   <p class="muted" style="margin-top:0" data-t="create.intro">Find an object around you, snap it, and tell us its topology.</p>
@@ -263,12 +267,12 @@
   <textarea id="chNote" maxlength="160" placeholder="e.g. The ring and the loop on the clip are holes." data-t-ph="create.note.ph"></textarea>
   <label class="field" for="myName" data-t="create.me.l">Your name</label>
   <input type="text" id="myName" maxlength="24" placeholder="So friends know who sent it" data-t-ph="create.me.ph">
-  <div class="err" id="chErr"></div>
+  <div class="err" id="chErr" role="alert"></div>
   <button class="btn" id="postBtn" style="margin-top:6px" data-t="create.post">Create challenge</button>
 </section>
 
 <!-- SHARE (after creating, or sending an answer back) -->
-<section id="share" class="hidden">
+<section id="share" class="hidden" tabindex="-1">
   <div class="back"><button class="link" id="shareBack" data-t="nav.challenges">← Challenges</button></div>
   <h2 id="shTitle">Send it to a friend</h2>
   <p class="muted" style="margin-top:0" id="shText"></p>
@@ -282,7 +286,7 @@
 </section>
 
 <!-- PLAY A RECEIVED CHALLENGE -->
-<section id="play" class="hidden">
+<section id="play" class="hidden" tabindex="-1">
   <div class="back"><button class="link" id="playBack" data-t="nav.challenges">← Challenges</button></div>
   <div class="card ch">
     <div class="pic"><img id="plImg" alt=""></div>
@@ -293,7 +297,7 @@
   </div>
   <div class="q" data-t="game.q">What is it, topologically?</div>
   <div class="opts" id="plOpts"></div>
-  <div class="fb" id="plFb"><strong id="plFbTitle"></strong><p id="plFbText"></p>
+  <div class="fb" id="plFb" role="status"><strong id="plFbTitle"></strong><p id="plFbText"></p>
     <input type="text" id="plMyName" maxlength="24" placeholder="Your name" data-t-ph="play.name.ph" style="margin-bottom:8px">
     <button class="btn" id="plReply" data-t="play.reply">Send my answer back</button></div>
 </section>
@@ -365,6 +369,9 @@ const STR = {
   "il.level":"Level {n} of 4",
   "il.go":"Let's go",
   "game.score":"Score",
+  "aria.lives":{one:"{n} life left", other:"{n} lives left"},
+  "aria.correct":"correct answer",
+  "aria.yours":"your answer",
   "game.q":"What is it, topologically?",
   "game.next":"Next",
   "game.results":"See results",
@@ -573,7 +580,7 @@ const LEVELS = {1:{c:"var(--l1)"}, 2:{c:"var(--l2)"}, 3:{c:"var(--l3)"}, 4:{c:"v
 const lvName = lv => t(`lv.${lv}.n`);
 
 function genusIcon(g, w=80, h=44){
-  if(g===0) return `<svg viewBox="0 0 80 44" width="${w}" height="${h}"><circle cx="40" cy="22" r="18" fill="#8fb0de" stroke="${INK}" stroke-width="1.5"/><ellipse cx="40" cy="22" rx="18" ry="5" fill="none" stroke="${INK}" stroke-width="1" stroke-dasharray="2 2" opacity=".6"/><ellipse cx="34" cy="15" rx="5" ry="3" fill="#fff" opacity=".5"/></svg>`;
+  if(g===0) return `<svg viewBox="0 0 80 44" width="${w}" height="${h}" aria-hidden="true" focusable="false"><circle cx="40" cy="22" r="18" fill="#8fb0de" stroke="${INK}" stroke-width="1.5"/><ellipse cx="40" cy="22" rx="18" ry="5" fill="none" stroke="${INK}" stroke-width="1" stroke-dasharray="2 2" opacity=".6"/><ellipse cx="34" cy="15" rx="5" ry="3" fill="#fff" opacity=".5"/></svg>`;
   const holes=[];
   for(let i=0;i<g;i++){
     const cx = g===1 ? 40 : 14 + (52/(g-1))*i;
@@ -581,7 +588,7 @@ function genusIcon(g, w=80, h=44){
     holes.push(`<path d="M${cx-rx} 21 Q${cx} 30 ${cx+rx} 21" fill="${BG}" stroke="${INK}" stroke-width="1.4"/><path d="M${cx-rx*0.8} 23.5 Q${cx} 16 ${cx+rx*0.8} 23.5" fill="#8fb0de" stroke="${INK}" stroke-width="1.4"/>`);
   }
   const outer = g===1 ? `<ellipse cx="40" cy="22" rx="34" ry="17" fill="#8fb0de" stroke="${INK}" stroke-width="1.5"/>` : `<rect x="3" y="6" width="74" height="32" rx="16" fill="#8fb0de" stroke="${INK}" stroke-width="1.5"/>`;
-  return `<svg viewBox="0 0 80 44" width="${w}" height="${h}">${outer}${holes.join("")}</svg>`;
+  return `<svg viewBox="0 0 80 44" width="${w}" height="${h}" aria-hidden="true" focusable="false">${outer}${holes.join("")}</svg>`;
 }
 function optionButtons(container, onPick){
   container.innerHTML = SHAPES.map((s,g)=>`<button class="opt" data-g="${g}">${genusIcon(g,52,30)}<span></span></button>`).join("");
@@ -591,8 +598,9 @@ function optionButtons(container, onPick){
 // Rings drawn over an object's picture after the answer: solid for a through-hole, dashed for an opening into a shared hollow space.
 const markList = a => Array.isArray(a) ? a.filter(m => Array.isArray(m) && m.length>=2 && m.slice(0,3).every(Number.isFinite)) : [];
 function marksSVG(o){
-  const ring = ([x,y,r=11], dash) => `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#fff" stroke-width="6" opacity=".85"/>` +
-    `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="${dash ? "#3d5a98" : "#e4572e"}" stroke-width="3"${dash ? ' stroke-dasharray="5 4"' : ""}/>`;
+  const ring = ([x,y,r=11], dash) => { const w = r<8 ? 1.8 : 3;   // small marks get a finer ring so they do not hide the hole
+    return `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#fff" stroke-width="${w*2}" opacity=".85"/>` +
+    `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="${dash ? "#3d5a98" : "#e4572e"}" stroke-width="${w}"${dash ? ` stroke-dasharray="${r<8 ? "3 2.5" : "5 4"}"` : ""}/>`; };
   const h = markList(o.holes), op = markList(o.open);
   return h.length || op.length ? `<g class="marks" aria-hidden="true">${h.map(m=>ring(m,false)).join("")}${op.map(m=>ring(m,true)).join("")}</g>` : "";
 }
@@ -608,7 +616,21 @@ const shapeName = g => t("shapeName."+g);
 // ---------- helpers ----------
 const $ = id => document.getElementById(id);
 const SCREENS = ["home","interlude","game","end","archive","friends","create","share","play"];
-function show(id){ SCREENS.forEach(s=>$(s).classList.toggle("hidden", s!==id)); window.scrollTo(0,0); }
+function show(id){
+  const moved = !$(id) || $(id).classList.contains("hidden");
+  SCREENS.forEach(s=>$(s).classList.toggle("hidden", s!==id)); window.scrollTo(0,0);
+  // keyboard and screen-reader users land on the new screen instead of on a control that just vanished
+  if(moved && shown) $(id).focus({preventScroll:true});
+  shown = true;
+}
+let shown = false;   // the first screen does not take focus from the page
+// right or wrong must not be told by colour alone: the option buttons say it in words too
+function markOptions(container, right, picked){
+  container.querySelectorAll(".opt").forEach(b=>{ const bg=+b.dataset.g; b.disabled=true;
+    if(bg===right){ b.classList.add("correct"); b.append(el("span",{class:"sr", text:" — "+t("aria.correct")})); }
+    else if(bg===picked){ b.classList.add("wrong"); b.append(el("span",{class:"sr", text:" — "+t("aria.yours")})); } });
+}
+const livesLabel = () => { const h = $("hearts"); if(G && G.lives!=null){ h.setAttribute("role","img"); h.setAttribute("aria-label", t("aria.lives",{n:G.lives})); } else { h.removeAttribute("role"); h.removeAttribute("aria-label"); } };
 const store = {get(k){try{return JSON.parse(localStorage.getItem("mugnut:"+k))}catch(e){return null}}, set(k,v){try{localStorage.setItem("mugnut:"+k,JSON.stringify(v))}catch(e){}}};
 const shuffle = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]} return a; };
 function el(tag, props={}, ...kids){ const e=document.createElement(tag); Object.entries(props).forEach(([k,v])=>{ if(k==="class") e.className=v; else if(k==="text") e.textContent=v; else if(k==="html") e.innerHTML=v; else if(k.startsWith("on")) e[k]=v; else e.setAttribute(k,v); }); kids.flat().forEach(k=>k!=null&&e.append(k)); return e; }
@@ -744,19 +766,21 @@ function renderQ(){
   const o = G.deck[G.idx];
   $("lvChip").textContent = lvName(o.lv); $("lvChip").style.background = LEVELS[o.lv].c;
   $("num").textContent = G.idx+1; $("tot").textContent = G.deck.length; $("sc").textContent = G.score;
-  $("hearts").textContent = G.lives==null ? "" : "♥".repeat(G.lives) + "♡".repeat(3-G.lives);
+  $("hearts").textContent = G.lives==null ? "" : "♥".repeat(G.lives) + "♡".repeat(3-G.lives); livesLabel();
   $("prog").style.width = (G.idx/G.deck.length*100)+"%";
   $("pic").innerHTML = `<svg viewBox="0 0 240 200" role="img">${o.svg}</svg>`;
   $("pic").firstChild.setAttribute("aria-label", oName(o));
   $("name").textContent = oName(o); $("sub").textContent = oSub(o);
   $("fb").className = "fb";
   optionButtons($("opts"), answer);
+  // the button that brought us here is gone: keep focus inside the question
+  if(shown && (document.activeElement===document.body || document.activeElement===$("nextBtn"))) $("game").focus({preventScroll:true});
 }
 function answer(g){
   // answered meanwhile somewhere else (another tab, or from the archive): show that answer, it cannot be changed
   if(G.mode==="daily" && !G.replay){ const rec = dailyLog.get(G.num); if(rec){ G.replay = true; g = rec.g; } }
   const o = G.deck[G.idx], ok = g===o.g;
-  $("opts").querySelectorAll(".opt").forEach(b=>{ const bg=+b.dataset.g; b.disabled=true; if(bg===o.g) b.classList.add("correct"); else if(bg===g) b.classList.add("wrong"); });
+  markOptions($("opts"), o.g, g);
   if(ok) G.score++; else { G.missed.push({o,g}); if(G.lives!=null) G.lives--; }
   if(G.mode==="daily" && !G.replay) dailyLog.set(G.num, g, ok);
   if(G.mode==="daily" && !G.replay && G.archive) track("archive-played");
@@ -767,7 +791,7 @@ function answer(g){
     track("daily-played");
   }
   $("sc").textContent = G.score;
-  if(G.lives!=null) $("hearts").textContent = "♥".repeat(G.lives) + "♡".repeat(3-G.lives);
+  if(G.lives!=null){ $("hearts").textContent = "♥".repeat(G.lives) + "♡".repeat(3-G.lives); livesLabel(); }
   $("fbTitle").textContent = ok ? t("fb.correct",{shape:shapeName(o.g)}) : t("fb.wrong."+o.g);
   $("fbText").textContent = oEx(o);
   const svg = $("pic").querySelector("svg"), note = marksNote(o);
@@ -777,7 +801,8 @@ function answer(g){
   const last = G.idx===G.deck.length-1 || G.lives===0;
   $("nextBtn").textContent = last ? t(G.lives===0 ? "game.outOfLives" : "game.results") : t("game.next");
   $("fb").className = "fb show " + (ok?"good":"bad");
-  setTimeout(()=>$("fb").scrollIntoView({behavior:"smooth", block:"nearest"}), 50);
+  $("nextBtn").focus({preventScroll:true});   // the options are disabled now: focus goes to what comes next
+  setTimeout(()=>$("fb").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"nearest"}), 50);
 }
 $("nextBtn").onclick = ()=>{ G.idx++; nextQuestion(); };
 function finish(){
@@ -1288,7 +1313,7 @@ function openPlay(id){
   show("play");
 }
 function reveal(c, g){
-  $("plOpts").querySelectorAll(".opt").forEach(b=>{ const bg=+b.dataset.g; b.disabled=true; if(bg===c.g) b.classList.add("correct"); else if(bg===g) b.classList.add("wrong"); });
+  markOptions($("plOpts"), c.g, g);
   const ok = g===c.g;
   $("plFbTitle").textContent = ok ? t("fb.correct",{shape:shapeName(c.g)}) : t("play.says",{from:c.from, shape:shapeName(c.g)});
   $("plFbText").textContent = c.note || t(ok ? "play.nice" : "play.look");

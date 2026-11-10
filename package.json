@@ -10,6 +10,7 @@
     "test:chromium": "playwright test --project=android-chrome"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.56.0",
     "http-server": "^14.1.1"
   }

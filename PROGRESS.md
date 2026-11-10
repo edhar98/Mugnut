@@ -33,11 +33,24 @@ Each item was built on its own branch, reviewed by an agent that did not write i
 
 Suite: 135 passed, 3 skipped (offline emulation with a service worker is Chromium-only), on Pixel 7 / Chromium and iPhone 14 / WebKit. Against the live site after the last merge: 133 passed, 5 skipped.
 
-## In progress
-- Nothing. Next is Phase 2 (content to 250+ objects, hole highlighting, Armenian and Russian, accessibility).
+### Phase 2 — Depth (web)
+- **Content: 257 objects** (100 core + 157 in five packs: Kitchen 35, Clothing 30, Tools 35, Letters & digits 38 with Latin and Armenian, Controversies 19). Pipeline per pack: an author proposed objects with a physical description; a reviewer who never saw the answers re-derived every genus from the description; an illustrator drew each one and checked renders. **The blind reviews agreed with the authors on all 166 proposals; no genus was disputed.** Nine proposals were dropped by the orchestrator (contrived, undrawable, brand-like, duplicate, or font-dependent: Toaster, Coffee dripper, Fuel can, Cable tie, Foam clog, Jeans with belt loops, a second Apron, a second Letter B, Armenian Ց).
+- **Code structure**: drawing helpers and core objects live in `objects.js`, packs in `packs/*.js` (plain scripts; the game still runs from a file). Pack rounds on the menu with their own best scores.
+- **Hole highlighting**: every object carries `holes` / `open` coordinates; after an answer the picture shows a solid ring on each through-hole and a dashed ring on each opening into a shared space, with a one-line legend ("4 openings into one space, which make 3 holes"). A test checks that the marks of all 257 objects add up to their answers.
+- **Localisation**: all interface strings in a table (`STR`, `t()`), Armenian and Russian in `lang/hy.js` / `lang/ru.js` loaded on demand, language picker on the menu, all 257 objects translated (name, qualifier, explanation). Every screen is tested at 360 px in both languages for overflow, clipping, raw keys and leftover English.
+- **Accessibility**: automated WCAG 2.1 A/AA audit (axe) of every screen in three languages; colours darkened to pass contrast; focus moves with the action and has a visible ring; option buttons and lives are labelled for screen readers and right/wrong is not told by colour alone; tap targets are at least 44 px; no animation under reduced motion.
+- Not built: the **Beyond genus** pack (Möbius strip, Klein bottle, knots). It needs a new question type; the design is with the human for a decision.
 
-## Blocked on the human
-- Nothing blocking. See `HUMAN_TODO.md` for the GoatCounter email verification.
+Suite: 214 passed, 4 skipped, on Pixel 7 / Chromium and iPhone 14 / WebKit.
+
+## In progress
+- Phase 2 pull request under review.
+
+## Blocked on the human (Gate 2)
+- Look at the screenshots and pack sheets in `docs/gate2/` (local, not committed).
+- A native-speaker pass over the Armenian and Russian wording (lists of doubtful words are in the Gate 2 report).
+- Decide the Beyond genus question type.
+- Judgement calls worth a look: "Person" (genus 3 under a stated model of which passages count), "Bowling ball, holes drilled to meet inside", "Balloon, tied shut".
 
 ## Backlog notes
 - Small follow-ups from the last review, none affecting stored data: the share card right after creating a challenge shows the link preview rather than the sharp photo; "Share again" can wait several seconds if IndexedDB hangs; the "See it sharp" label can show wrongly if two challenges are opened within milliseconds; `tools/make-og.js` uses Apple system fonts, so regenerate `og.png` on a Mac.

@@ -1,6 +1,6 @@
 # Mugnut
 
-A phone game about the topology of everyday objects — because to a topologist, a mug is a donut. Is it a sphere, a torus, a double torus…? It has 100 hand-drawn objects in 4 levels, a Journey mode, and photo challenges you send to friends.
+A phone game about the topology of everyday objects — because to a topologist, a mug is a donut. Is it a sphere, a torus, a double torus…? It has 257 hand-drawn objects in 4 levels and five themed packs, a daily object, a Journey mode, and photo challenges you send to friends, in English, Armenian and Russian.
 
 It runs entirely in the browser: no server, no account, no ads, and it works offline once loaded. The only thing it reports is anonymous usage counts (see Privacy below).
 
@@ -8,7 +8,9 @@ It runs entirely in the browser: no server, no account, no ads, and it works off
 
 | File | What it is |
 |---|---|
-| `index.html` | The whole game (drawings, logic, styles) |
+| `index.html` | The game (logic, styles, English text) |
+| `objects.js`, `packs/*.js` | The drawings and object data: the core 100 and the themed packs |
+| `lang/*.js` | Armenian and Russian text |
 | `manifest.webmanifest` | Makes it installable ("Add to Home Screen") |
 | `sw.js` | Service worker that caches the game for offline play |
 | `icons/` | App icons |
