@@ -5,6 +5,7 @@ Updated: 2026-11-10
 ## Done
 
 ### Phase 0 — Setup
+- Independent review of `daily-mode`: changes requested, fixed, then approved.
 - Git repository connected to `edhar98/Mugnut`; daily mode, result sharing and Open Graph tags committed on `daily-mode`.
 - `package.json` (dev dependencies only: Playwright, http-server) and `.gitignore` (tooling output, secrets, signing material).
 - Playwright smoke suite in `tests/`, run at two phone profiles (Pixel 7 / Chromium, iPhone 14 / WebKit): 27 tests each (54 total), also green with the runner in UTC and US Pacific time.
@@ -28,6 +29,7 @@ Updated: 2026-11-10
 
 ## Backlog notes
 - **Before adding objects (Phase 2):** the daily object is picked by position in `OBJECTS`, so adding or reordering objects changes every day's object. Give the daily rotation its own fixed list first.
+- Phones that opened a malformed challenge link on the current live site keep a bad record that still breaks their Friends list; drop received entries with a non-integer answer when loading (do with the IndexedDB migration).
 - Link data is not size-capped: a very large pasted link can fill browser storage, after which saves fail silently. Cap preview length and the number of received challenges (fits with the IndexedDB move in Phase 1).
 - Challenges created in Safari travel without an in-link preview (JPEG headers alone exceed the caption budget). The attached photo still goes through the share sheet. Native share in Phase 3 removes the limit; a smaller hand-rolled preview format would fix it on the web.
 - `og:image` currently points at the 512 px icon; a 1200×630 image is planned in Phase 1.
