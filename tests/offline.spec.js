@@ -13,6 +13,14 @@ test("the served service worker names its cache after the build stamp", async ({
   expect(sw).toContain('const CACHE = "mugnut-" + BUILD;');
 });
 
+test("every file the service worker caches is tracked by git", async () => {
+  const { execFileSync } = require("child_process");
+  const root = require("path").resolve(__dirname, "..");
+  const sw = require("fs").readFileSync(root + "/sw.js", "utf8");
+  const tracked = execFileSync("git", ["ls-files"], { cwd: root, encoding: "utf8" }).split("\n");
+  for (const f of JSON.parse(sw.match(/const FILES = (\[[\s\S]*?\]);/)[1]).filter(f => f !== "./")) expect(tracked, f).toContain(f);
+});
+
 test.describe("offline", () => {
   test.use({ serviceWorkers: "allow" });
   // Playwright can only take a service-worker-controlled page offline reliably in Chromium.
@@ -34,6 +42,17 @@ test.describe("offline", () => {
     await expect(page.locator("#pic svg")).toBeVisible();
     expect(await page.evaluate(() => fetch("icons/icon-192.png").then(r => r.ok))).toBe(true);
     expect(await page.evaluate(() => fetch("manifest.webmanifest").then(r => r.ok))).toBe(true);
+    await context.setOffline(false);
+  });
+
+  test("a missing page is not saved as the offline copy of the game", async ({ page, context }) => {
+    await page.goto("./");
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
+    await page.goto("./no-such-page", { waitUntil: "load" }).catch(() => {});
+    await context.setOffline(true);
+    await page.goto("./");
+    await expect(page.locator("#home")).toBeVisible();
     await context.setOffline(false);
   });
 

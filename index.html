@@ -550,8 +550,9 @@ function track(event){
 function renderHome(){
   const jb = store.get("best-journey");
   $("jBest").textContent = jb ? `Best ${jb}/24` : "";
-  const dd = store.get("daily"), doneToday = dd && dd.day===localDay();
-  $("dTag").textContent = doneToday ? `${dd.ok?"✓":"✗"} Done · streak ${dd.streak}` : `#${dailyNum()}`;
+  // today counts as done if either record says so, the same rule startDaily uses to lock it
+  const dd = store.get("daily"), rec = dailyLog.get(dailyNum()), mine = dd && dd.day===localDay(), doneToday = !!(mine || rec);
+  $("dTag").textContent = mine ? `${dd.ok?"✓":"✗"} Done · streak ${dd.streak}` : rec ? `${rec.ok?"✓":"✗"} Done` : `#${dailyNum()}`;
   $("dNext").dataset.countdown = doneToday ? "Next object in " : "";
   $("archiveRow").classList.toggle("hidden", dailyNum() < 2);
   tick();
