@@ -1,0 +1,9 @@
+#!/bin/sh
+# Keep the service worker's build stamp in step with the files it caches.
+# The stamp must describe what is being committed, so stop if those files have unstaged edits.
+if ! git diff --quiet -- index.html sw.js manifest.webmanifest icons; then
+  echo "pre-commit: index.html, sw.js, the manifest or icons have unstaged changes; stage or stash them first." >&2
+  exit 1
+fi
+node tools/stamp.js >/dev/null || exit 1
+git add sw.js

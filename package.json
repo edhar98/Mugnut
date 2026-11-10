@@ -5,6 +5,7 @@
   "description": "Mugnut: a game about the topology of everyday objects. The game itself has no build step and no runtime dependencies; this file only holds test tooling.",
   "scripts": {
     "serve": "http-server . -p 4173 -c-1 --silent",
+    "stamp": "node tools/stamp.js",
     "test": "playwright test",
     "test:chromium": "playwright test --project=android-chrome"
   },
