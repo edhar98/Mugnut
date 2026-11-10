@@ -53,6 +53,7 @@
   .pic{display:flex;justify-content:center;align-items:center;background:radial-gradient(circle at 50% 45%,#fff 0,#fbf7ee 70%);border-radius:14px;padding:6px;overflow:hidden}
   .pic svg{width:100%;max-width:300px;height:auto}
   .pic img{width:100%;max-height:340px;object-fit:contain;border-radius:10px;display:block}
+  .pic img.tiny{filter:blur(3px);transform:scale(1.02)}
   .name{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:23px;font-weight:600;text-align:center;margin:10px 0 2px}
   .sub{text-align:center;color:var(--muted);font-size:14px;min-height:20px}
   .q{font-weight:500;margin:16px 2px 10px}
@@ -578,7 +579,14 @@ document.querySelectorAll("[data-home]").forEach(b=>b.onclick=renderHome);
 // Answer link:     <app>#r=<base64url(JSON)>
 const APP_URL = location.origin + location.pathname;
 const PHOTO_BUDGET = 12000;  // optional long link with a sharp photo inside (when the photo can't be attached)
-const SHORT_BUDGET = 1300;   // default link: small preview only — the real photo travels as a chat attachment
+const CAPTION_LIMIT = 1000;  // WhatsApp & Telegram cap a photo's caption at 1024 characters — the whole message must fit
+const shareText = c => `${c.from} challenges you: what is “${c.name}” topologically? 🍩`;
+// small preview sized so that text + link fit in one photo caption
+function fitShort(c, img){
+  const base = challengeLink({...c, short:{thumb:"", mime:WEBP_OK?"image/webp":"image/jpeg"}}, true);
+  const room = CAPTION_LIMIT - shareText(c).length - 1 - base.length;
+  return encodeFit(img, Math.max(120, room));
+}
 const WEBP_OK = (()=>{ try{ const c=document.createElement("canvas"); c.width=c.height=2; return c.toDataURL("image/webp").startsWith("data:image/webp"); }catch(e){ return false; } })();
 const imgSrc = c => c.full || `data:${c.mime||"image/jpeg"};base64,${c.thumb}`;
 
@@ -755,6 +763,8 @@ function stripWebpMeta(b64){
       o=end;
     }
     keep.forEach(ch=>{ if(String.fromCharCode(ch[0],ch[1],ch[2],ch[3])==="VP8X") ch[8] &= ~(0x20|0x08|0x04); });
+    const vx = keep.findIndex(ch=>String.fromCharCode(ch[0],ch[1],ch[2],ch[3])==="VP8X");
+    if(vx>=0 && keep[vx][8]===0 && keep.length===2) keep.splice(vx,1);
     const total = 4 + keep.reduce((n,c)=>n+c.length,0);
     const out = new Uint8Array(8+total); out.set([82,73,70,70]); out[4]=total&255; out[5]=(total>>8)&255; out[6]=(total>>16)&255; out[7]=(total>>24)&255;
     out.set([87,69,66,80],8); let p=12; keep.forEach(c=>{ out.set(c,p); p+=c.length; });
@@ -765,13 +775,13 @@ function stripWebpMeta(b64){
 // biggest, sharpest version of the photo that fits in `budget` characters
 function encodeFit(img, budget){
   const type = WEBP_OK ? "image/webp" : "image/jpeg";
-  const sizes = [800,720,640,560,480,420,360,320,280,240,200,160,140,120,100,80];
-  const qs = type==="image/webp" ? [0.75,0.62,0.5,0.4,0.32] : [0.72,0.6,0.5,0.42,0.35];
+  const sizes = [800,720,640,560,480,420,360,320,280,240,200,160,140,120,100,88,76,64,56,48];
+  const qs = type==="image/webp" ? [0.75,0.62,0.5,0.4,0.32,0.22,0.14] : [0.72,0.6,0.5,0.42,0.35,0.25,0.15];
   for(const s of sizes){
     const cv = drawScaled(img, s);
     for(const q of qs){ let b = cv.toDataURL(type, q).split(",")[1]; if(type==="image/webp") b = stripWebpMeta(b); if(b.length <= budget) return {thumb:b, mime:type}; }
   }
-  return {thumb:drawScaled(img,100).toDataURL("image/jpeg",0.3).split(",")[1], mime:"image/jpeg"};
+  return {thumb:"", mime:type};   // nothing fits: no preview rather than a link that gets cut off
 }
 const loadImg = src => new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; });
 async function handleFile(file){
@@ -785,7 +795,7 @@ async function handleFile(file){
     // sharp copy kept on this phone, plus two versions that travel inside links
     draft.full = drawScaled(img, 900).toDataURL("image/jpeg", 0.8);
     const hi = encodeFit(img, PHOTO_BUDGET); draft.thumb = hi.thumb; draft.mime = hi.mime;
-    draft.short = encodeFit(img, SHORT_BUDGET);
+    draft.img = img;
     URL.revokeObjectURL(url);
     $("preview").src = `data:${hi.mime};base64,${hi.thumb}`;
     $("previewCard").classList.remove("hidden"); $("photoBtns").classList.add("hidden");
@@ -801,7 +811,8 @@ $("postBtn").onclick = ()=>{
   if(draft.g==null) return $("chErr").textContent = "Pick its topology.";
   if(!from) return $("chErr").textContent = "Add your name so friends know who sent it.";
   store.set("name", from);
-  const c = {id:newId(), name, note, from, g:draft.g, thumb:draft.thumb, mime:draft.mime, short:draft.short, full:draft.full, createdAt:Date.now(), guesses:[]};
+  const c = {id:newId(), name, note, from, g:draft.g, thumb:draft.thumb, mime:draft.mime, full:draft.full, createdAt:Date.now(), guesses:[]};
+  c.short = fitShort(c, draft.img);
   const d = DB.load(); d.mine[c.id]=c;
   if(!d.postedDays.includes(localDay())) d.postedDays.push(localDay());
   DB.saveRoomy(d, c.id);   // if storage is blocked we still let them share
@@ -811,15 +822,17 @@ $("postBtn").onclick = ()=>{
 // ---- share screen ----
 let shareCtx = null;
 async function openShare(c, photoBlob=null){
-  if(!c.short){   // older challenges: make the Telegram-size version on the fly
-    try{ c.short = encodeFit(await loadImg(imgSrc(c)), SHORT_BUDGET); }catch(e){ c.short = {thumb:c.thumb, mime:c.mime}; }
+  // older challenges (or ones whose link no longer fits a caption): rebuild the preview
+  if(!c.short || shareText(c).length + 1 + challengeLink(c, true).length > CAPTION_LIMIT){
+    try{ c.short = fitShort(c, await loadImg(imgSrc(c))); const d = DB.load(); if(d.mine[c.id]){ d.mine[c.id].short = c.short; DB.save(d); } }
+    catch(e){ c.short = {thumb:"", mime:"image/jpeg"}; }
   }
   if(!photoBlob && c.full){ try{ photoBlob = await (await fetch(c.full)).blob(); }catch(e){} }
   const link = challengeLink(c, true);
   shareCtx = {
     urlLong: challengeLink(c, false),
     title:`Mugnut challenge: ${c.name}`,
-    text:`${c.from} challenges you: what is “${c.name}” topologically? 🍩`,
+    text:shareText(c),
     url:link, file: photoBlob ? new File([photoBlob], "mugnut-challenge.jpg", {type:"image/jpeg"}) : null
   };
   $("shTitle").textContent = "Send it to a friend";
@@ -852,9 +865,11 @@ $("shShare").onclick = async ()=>{
   try{
     if(navigator.share){
       if(shareCtx.file && navigator.canShare && navigator.canShare({files:[shareCtx.file]})){
-        await navigator.share({...data, files:[shareCtx.file]});
+        // photo + caption: no title (some apps prepend it and push the link past the caption limit)
+        await navigator.share({text:data.text, files:[shareCtx.file]});
       } else {
-        await navigator.share({title:shareCtx.title, text:shareCtx.text, url:shareCtx.url});
+        // no photo attachment possible: send the long link that has the sharp photo inside
+        await navigator.share({title:shareCtx.title, text:shareCtx.text, url:shareCtx.urlLong || shareCtx.url});
       }
       $("shErr").textContent = "Shared!";
     } else { await copyLink(); }
@@ -880,6 +895,8 @@ $("shShort").onclick = async ()=>{
 // ---- play a received challenge ----
 function openPlay(id){
   const d = DB.load(); const c = d.received[id]; if(!c) return openFriends();
+  $("plImg").classList.remove("tiny"); delete $("plImg").dataset.ph;
+  $("plImg").onload = e=>{ if(!c.full && !e.target.dataset.ph) e.target.classList.toggle("tiny", e.target.naturalWidth < 240); };
   $("plImg").src = imgSrc(c); $("plImg").alt = c.name;
   $("plFullLbl").classList.toggle("hidden", !!c.full);
   $("plFullIn").onchange = async e=>{
@@ -887,7 +904,8 @@ function openPlay(id){
     try{
       const u = URL.createObjectURL(f); const im = await loadImg(u); URL.revokeObjectURL(u);
       const d3 = DB.load(); d3.received[id].full = drawScaled(im, 900).toDataURL("image/jpeg", 0.8); DB.saveRoomy(d3, id);
-      $("plImg").src = d3.received[id].full; $("plFullLbl").classList.add("hidden");
+      c.full = d3.received[id].full; $("plImg").classList.remove("tiny"); delete $("plImg").dataset.ph;
+      $("plImg").src = c.full; $("plFullLbl").classList.add("hidden");
     }catch(err){ console.warn(err); }
   };
   $("plFrom").textContent = `From ${c.from} · ${dayLabel(c.createdAt)}`;
@@ -915,6 +933,13 @@ function reveal(c, g){
   $("plFb").className = "fb show " + (ok?"good":"bad");
 }
 $("playBack").onclick = openFriends;
+
+// any photo that can't be shown (e.g. a link cut short by a chat app) gets a friendly placeholder
+const PHOTO_PH = "data:image/svg+xml," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200"><rect width="320" height="200" rx="12" fill="#f1ece1"/><g fill="none" stroke="#9aa3b2" stroke-width="6" stroke-linejoin="round"><rect x="110" y="62" width="100" height="72" rx="10"/><circle cx="160" cy="98" r="20"/><path d="M132 62l8-12h40l8 12"/></g><text x="160" y="170" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" fill="#6b7280">The photo is in your chat</text></svg>`);
+document.addEventListener("error", e=>{
+  const t = e.target;
+  if(t && t.tagName==="IMG" && !t.dataset.ph){ t.dataset.ph = "1"; t.classList.remove("tiny"); t.src = PHOTO_PH; }
+}, true);
 
 // ---- offline / install ----
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){

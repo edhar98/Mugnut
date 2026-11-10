@@ -1,5 +1,5 @@
 // Mugnut service worker: makes the game work offline.
-const CACHE = "mugnut-v3";
+const CACHE = "mugnut-v4";
 const FILES = ["./", "index.html", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/maskable-512.png", "icons/apple-touch-icon.png"];
 
