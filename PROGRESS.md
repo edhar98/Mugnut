@@ -26,7 +26,7 @@ Updated: 2026-11-10
 - Phase 1 — validation features (analytics hook, daily archive and countdown, Open Graph image, automatic cache version, photos in IndexedDB).
 
 ## Blocked on the human
-- Analytics site code (Gate 0): not blocking, analytics stays off until it arrives.
+- Nothing blocking. Gate 0 answered: GoatCounter, site code `mugnut`; analytics is not wired in yet (Phase 1).
 
 ## Backlog notes
 - **Before adding objects (Phase 2):** the daily object is picked by position in `OBJECTS`, so adding or reordering objects changes every day's object. Give the daily rotation its own fixed list first.
