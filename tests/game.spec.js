@@ -155,3 +155,22 @@ test("works opened straight from the file system, with no server and no build", 
   await expect(page.locator("#end")).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("link previews: Open Graph tags point at a real 1200×630 image in the repository", async ({ page, request }) => {
+  await page.goto("./");
+  const meta = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll("meta[property^='og:'], meta[name^='twitter:']")].map(m => [m.getAttribute("property") || m.name, m.content])));
+  expect(meta["og:title"]).toBeTruthy();
+  expect(meta["og:description"]).toBeTruthy();
+  expect(meta["og:url"]).toBe("https://edhar98.github.io/Mugnut/");
+  expect(meta["og:image"]).toBe("https://edhar98.github.io/Mugnut/og.png"); // crawlers need an absolute URL
+  expect(meta["twitter:card"]).toBe("summary_large_image");
+  expect(meta["twitter:image"]).toBe(meta["og:image"]);
+  expect([meta["og:image:width"], meta["og:image:height"]]).toEqual(["1200", "630"]);
+  // the file that URL will serve is the one in this repository
+  const res = await request.get("og.png");
+  expect(res.status()).toBe(200);
+  const png = await res.body();
+  expect(png.subarray(1, 4).toString()).toBe("PNG");
+  expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 630]);
+  expect(png.length).toBeLessThan(300 * 1024);
+});
