@@ -224,6 +224,7 @@
   <div class="stack" style="margin-top:14px">
     <button class="btn" id="shShare">Share…</button>
     <button class="btn ghost" id="shCopy">Copy link</button>
+    <button class="link" id="shShort" style="justify-self:center">Telegram cuts the message? Send a short link</button>
   </div>
   <div class="err" id="shErr" style="color:var(--muted)"></div>
 </section>
@@ -235,6 +236,8 @@
     <div class="pic"><img id="plImg" alt=""></div>
     <div class="meta"><span id="plFrom"></span><span></span></div>
     <div class="title" id="plName"></div>
+    <label class="link" id="plFullLbl" style="display:inline-block;position:relative;overflow:hidden;font-size:14px">Got the photo in the chat too? Use it for full quality
+      <input type="file" accept="image/*" id="plFullIn" style="position:absolute;inset:0;opacity:0"></label>
   </div>
   <div class="q">What is it, topologically?</div>
   <div class="opts" id="plOpts"></div>
@@ -571,10 +574,13 @@ $("journeyBtn").onclick = startJourney;
 document.querySelectorAll("[data-home]").forEach(b=>b.onclick=renderHome);
 
 // ---------- friend challenges (no server: links shared through any chat app) ----------
-// Challenge link:  <app>#c=<base64url(JSON)>.<base64url(jpeg thumbnail)>
+// Challenge link:  <app>#c=<base64url(JSON)>.<base64url(webp/jpeg photo)>
 // Answer link:     <app>#r=<base64url(JSON)>
 const APP_URL = location.origin + location.pathname;
-const MAX_THUMB = 3200; // characters of photo data in the link — keeps the whole link under Telegram's 4096-character limit
+const PHOTO_BUDGET = 12000;  // photo characters in a normal link (fine for WhatsApp, iMessage, Signal, e-mail)
+const SHORT_BUDGET = 3000;   // "short link" photo budget: whole link stays under Telegram's 4096-character limit
+const WEBP_OK = (()=>{ try{ const c=document.createElement("canvas"); c.width=c.height=2; return c.toDataURL("image/webp").startsWith("data:image/webp"); }catch(e){ return false; } })();
+const imgSrc = c => c.full || `data:${c.mime||"image/jpeg"};base64,${c.thumb}`;
 
 const b64u = {
   enc: s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""),
@@ -591,7 +597,15 @@ const clean = (s,n) => String(s ?? "").replace(/[\u0000-\u001f]/g," ").trim().sl
 // local data
 const DB = {
   load(){ return store.get("friends") || {mine:{}, received:{}, postedDays:[]}; },
-  save(d){ store.set("friends", d); },
+  save(d){ try{ localStorage.setItem("mugnut:friends", JSON.stringify(d)); return true; }catch(e){ return false; } },
+  // save, dropping the sharp local copies of older photos if the phone's storage is full
+  saveRoomy(d, keepId){
+    if(DB.save(d)) return true;
+    const all = [...Object.values(d.mine), ...Object.values(d.received)].filter(c=>c.full && c.id!==keepId).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+    for(const c of all){ delete c.full; if(DB.save(d)) return true; }
+    if(keepId){ const c = d.mine[keepId] || d.received[keepId]; if(c){ delete c.full; return DB.save(d); } }
+    return false;
+  },
 };
 function myName(){ return store.get("name") || ""; }
 
@@ -599,9 +613,11 @@ const localDay = (t=Date.now()) => { const d=new Date(t); return `${d.getFullYea
 function dayLabel(t){ const d=localDay(t), today=localDay(), y=localDay(Date.now()-864e5); return d===today?"today":d===y?"yesterday":new Date(t).toLocaleDateString(undefined,{month:"short",day:"numeric"}); }
 function fNote(msg){ $("fNote").textContent = msg || ""; $("fNote").classList.toggle("hidden", !msg); }
 
-function challengeLink(c){
+function challengeLink(c, short=false){
+  const p = short ? c.short : {thumb:c.thumb, mime:c.mime};
   const meta = {v:1, id:c.id, n:c.name, t:c.note, f:c.from, k:hideG(c.g, c.id), at:c.createdAt};
-  return `${APP_URL}#c=${b64u.enc(JSON.stringify(meta))}.${rawToUrl(c.thumb)}`;
+  if(p.mime==="image/webp") meta.m = "w";
+  return `${APP_URL}#c=${b64u.enc(JSON.stringify(meta))}.${rawToUrl(p.thumb)}`;
 }
 function answerLink(r){
   return `${APP_URL}#r=${b64u.enc(JSON.stringify({v:1, id:r.id, g:r.guess, by:r.by, at:r.at}))}`;
@@ -620,9 +636,13 @@ function handleHash(raw){
       const g = showG(+x.k, id);
       const d = DB.load();
       if(d.mine[id]){ openFriends(); fNote("That's one of your own challenges."); return true; }
+      const incoming = urlToRaw(p).replace(/[^A-Za-z0-9+/=]/g,"");
+      if(d.received[id] && !d.received[id].full && incoming.length > (d.received[id].thumb||"").length){
+        d.received[id].thumb = incoming; d.received[id].mime = x.m==="w" ? "image/webp" : "image/jpeg"; DB.save(d);
+      }
       if(!d.received[id]){
         d.received[id] = {id, name:clean(x.n,50)||"Mystery object", note:clean(x.t,160), from:clean(x.f,24)||"A friend",
-          g, thumb:urlToRaw(p).replace(/[^A-Za-z0-9+/=]/g,""), createdAt:+x.at||Date.now(), openedAt:Date.now(), guess:null};
+          g, thumb:urlToRaw(p).replace(/[^A-Za-z0-9+/=]/g,""), mime: x.m==="w" ? "image/webp" : "image/jpeg", createdAt:+x.at||Date.now(), openedAt:Date.now(), guess:null};
         DB.save(d);
       }
       openPlay(id);
@@ -679,7 +699,7 @@ function renderFeed(){
 }
 function miniCard(c, metaText, action, onAction){
   const card = el("div",{class:"card ch"});
-  card.append(el("div",{class:"pic"}, el("img",{src:"data:image/jpeg;base64,"+c.thumb, alt:c.name})));
+  card.append(el("div",{class:"pic"}, el("img",{src:imgSrc(c), alt:c.name})));
   card.append(el("div",{class:"meta"}, el("span",{text:metaText}), action ? el("button",{class:"link", text:action, onclick:onAction}) : el("span")));
   card.append(el("div",{class:"title", text:c.name}));
   return card;
@@ -707,7 +727,7 @@ $("pasteBtn").onclick = ()=>{ const v=$("pasteIn").value.trim(); if(!v) return; 
 // ---- create ----
 let draft = {photo:null, thumb:null, g:null};
 function openCreate(){
-  draft = {photo:null, thumb:null, g:null};
+  draft = {photo:null, thumb:null, mime:null, short:null, full:null, g:null};
   $("chName").value=""; $("chNote").value=""; $("chErr").textContent=""; $("myName").value = myName();
   $("previewCard").classList.add("hidden"); $("photoBtns").classList.remove("hidden");
   optionButtons($("chOpts"), (g,b)=>{ draft.g=g; $("chOpts").querySelectorAll(".opt").forEach(x=>x.classList.toggle("sel", x===b)); });
@@ -723,6 +743,18 @@ function drawScaled(img, max){
   const cx = cv.getContext("2d"); cx.fillStyle="#fff"; cx.fillRect(0,0,cv.width,cv.height); cx.drawImage(img,0,0,cv.width,cv.height);
   return cv;
 }
+// biggest, sharpest version of the photo that fits in `budget` characters
+function encodeFit(img, budget){
+  const type = WEBP_OK ? "image/webp" : "image/jpeg";
+  const sizes = [800,720,640,560,480,420,360,320,280,240,200,160,120];
+  const qs = type==="image/webp" ? [0.75,0.62,0.5,0.4,0.32] : [0.72,0.6,0.5,0.42,0.35];
+  for(const s of sizes){
+    const cv = drawScaled(img, s);
+    for(const q of qs){ const b = cv.toDataURL(type, q).split(",")[1]; if(b.length <= budget) return {thumb:b, mime:type}; }
+  }
+  return {thumb:drawScaled(img,100).toDataURL("image/jpeg",0.3).split(",")[1], mime:"image/jpeg"};
+}
+const loadImg = src => new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; });
 async function handleFile(file){
   $("chErr").textContent="";
   if(!file) return;
@@ -731,16 +763,12 @@ async function handleFile(file){
     const img = await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=url; });
     // full-size photo to attach when sharing
     draft.photo = await new Promise(res=>drawScaled(img,1400).toBlob(res,"image/jpeg",0.85));
-    // small thumbnail that travels inside the link
-    let max=320, q=0.6, b64="";
-    for(let i=0;i<10;i++){
-      b64 = drawScaled(img,max).toDataURL("image/jpeg",q).split(",")[1];
-      if(b64.length <= MAX_THUMB) break;
-      if(q>0.4) q-=0.07; else max=Math.round(max*0.85);
-    }
-    draft.thumb = b64;
+    // sharp copy kept on this phone, plus two versions that travel inside links
+    draft.full = drawScaled(img, 900).toDataURL("image/jpeg", 0.8);
+    const hi = encodeFit(img, PHOTO_BUDGET); draft.thumb = hi.thumb; draft.mime = hi.mime;
+    draft.short = encodeFit(img, SHORT_BUDGET);
     URL.revokeObjectURL(url);
-    $("preview").src = "data:image/jpeg;base64,"+b64;
+    $("preview").src = `data:${hi.mime};base64,${hi.thumb}`;
     $("previewCard").classList.remove("hidden"); $("photoBtns").classList.add("hidden");
   }catch(e){ console.warn(e); $("chErr").textContent = "Couldn't read that image — try another photo."; }
 }
@@ -754,28 +782,32 @@ $("postBtn").onclick = ()=>{
   if(draft.g==null) return $("chErr").textContent = "Pick its topology.";
   if(!from) return $("chErr").textContent = "Add your name so friends know who sent it.";
   store.set("name", from);
-  const c = {id:newId(), name, note, from, g:draft.g, thumb:draft.thumb, createdAt:Date.now(), guesses:[]};
+  const c = {id:newId(), name, note, from, g:draft.g, thumb:draft.thumb, mime:draft.mime, short:draft.short, full:draft.full, createdAt:Date.now(), guesses:[]};
   const d = DB.load(); d.mine[c.id]=c;
   if(!d.postedDays.includes(localDay())) d.postedDays.push(localDay());
-  try{ DB.save(d); }catch(e){}
-  if(store.get("friends")?.mine?.[c.id]==null) { /* storage full or blocked: still let them share */ }
+  DB.saveRoomy(d, c.id);   // if storage is blocked we still let them share
   openShare(c, draft.photo);
 };
 
 // ---- share screen ----
 let shareCtx = null;
-function openShare(c, photoBlob=null){
+async function openShare(c, photoBlob=null){
+  if(!c.short){   // older challenges: make the Telegram-size version on the fly
+    try{ c.short = encodeFit(await loadImg(imgSrc(c)), SHORT_BUDGET); }catch(e){ c.short = {thumb:c.thumb, mime:c.mime}; }
+  }
   const link = challengeLink(c);
   shareCtx = {
+    urlShort: challengeLink(c, true),
     title:`Mugnut challenge: ${c.name}`,
     text:`${c.from} challenges you: what is “${c.name}” topologically? 🍩`,
     url:link, file: photoBlob ? new File([photoBlob], "mugnut-challenge.jpg", {type:"image/jpeg"}) : null
   };
   $("shTitle").textContent = "Send it to a friend";
   $("shText").textContent = "Share the link in any chat. Your friend opens it, guesses, and can send their answer back to you.";
+  $("shShort").classList.remove("hidden");
   const card = $("shCard"); card.innerHTML="";
   card.className = "card ch";
-  card.append(el("div",{class:"pic"}, el("img",{src:"data:image/jpeg;base64,"+c.thumb, alt:c.name})));
+  card.append(el("div",{class:"pic"}, el("img",{src:imgSrc(c), alt:c.name})));
   card.append(el("div",{class:"title", text:c.name}));
   card.append(el("div",{class:"muted", style:"margin:4px 2px 0;font-size:14px", text:`Answer: ${shapeName(c.g)} (hidden from your friend)`}));
   $("shErr").textContent = "";
@@ -787,6 +819,7 @@ function openReplyShare(rc, guess){
   shareCtx = {title:"My Mugnut answer", text:`My answer for “${rc.name}”: ${SHAPES[guess].toLowerCase()} ${ok?"✓":"✗"}. Open to record it:`, url:answerLink(r), file:null};
   $("shTitle").textContent = `Send your answer to ${rc.from}`;
   $("shText").textContent = `When ${rc.from} opens this link in their Mugnut app, your answer appears under their challenge.`;
+  $("shShort").classList.add("hidden");
   const card=$("shCard"); card.innerHTML=""; card.className="card";
   card.append(el("b",{text:`${rc.name}: you said ${SHAPES[guess].toLowerCase()} ${ok?"✓":"✗"}`}));
   $("shErr").textContent = "";
@@ -815,11 +848,28 @@ async function copyLink(){
   }
 }
 $("shCopy").onclick = copyLink;
+$("shShort").onclick = async ()=>{
+  const txt = shareCtx.text + "\n" + shareCtx.urlShort;
+  try{
+    if(navigator.share){ await navigator.share({title:shareCtx.title, text:shareCtx.text, url:shareCtx.urlShort}); $("shErr").textContent = "Shared!"; return; }
+  }catch(e){ if(e && e.name==="AbortError") return; }
+  try{ await navigator.clipboard.writeText(txt); $("shErr").textContent = "Short link copied — the photo in it is smaller."; }
+  catch(e){ const ta = el("textarea",{style:"margin-top:8px"}); ta.value = txt; $("shErr").textContent = "Copy this and send it:"; $("shErr").append(ta); ta.select(); }
+};
 
 // ---- play a received challenge ----
 function openPlay(id){
   const d = DB.load(); const c = d.received[id]; if(!c) return openFriends();
-  $("plImg").src = "data:image/jpeg;base64,"+c.thumb; $("plImg").alt = c.name;
+  $("plImg").src = imgSrc(c); $("plImg").alt = c.name;
+  $("plFullLbl").classList.toggle("hidden", !!c.full);
+  $("plFullIn").onchange = async e=>{
+    const f = e.target.files[0]; e.target.value=""; if(!f) return;
+    try{
+      const u = URL.createObjectURL(f); const im = await loadImg(u); URL.revokeObjectURL(u);
+      const d3 = DB.load(); d3.received[id].full = drawScaled(im, 900).toDataURL("image/jpeg", 0.8); DB.saveRoomy(d3, id);
+      $("plImg").src = d3.received[id].full; $("plFullLbl").classList.add("hidden");
+    }catch(err){ console.warn(err); }
+  };
   $("plFrom").textContent = `From ${c.from} · ${dayLabel(c.createdAt)}`;
   $("plName").textContent = c.name;
   $("plFb").className = "fb";
