@@ -54,7 +54,17 @@ Phones fetch the new version on their next visit.
 
 ## Privacy
 
-Mugnut collects no personal data and sets no cookies. To see whether anyone plays, the live site sends anonymous counts to [GoatCounter](https://www.goatcounter.com), an open-source, cookieless counter: one page view per visit and a fixed event name when a round starts or finishes, the daily object is played, a share button is tapped, or a challenge is created, opened or answered. Names, photos, answers and the contents of challenge links never leave your phone. Nothing is sent if your browser asks not to be tracked (Do Not Track or Global Privacy Control), or when the game runs from a file or a local server. Set `ANALYTICS = ""` in `index.html` to switch it off completely.
+Mugnut has no accounts, no ads and no cookies, and your names, photos, answers and challenge links stay on your phone.
+
+To see whether anyone plays, the live site (and only the live site) sends counts to [GoatCounter](https://www.goatcounter.com), an open-source, cookieless counter. Exactly this is sent:
+
+- one page view each time the page loads, and a fixed event name when a round starts or finishes, the daily object or a past object is played, the archive is opened, a share button is tapped, or a challenge is created, opened or answered;
+- with each of those: your screen width, and for the page view the host name of the site that linked you here (for example `news.ycombinator.com`, never the full address);
+- like any web request, it reaches GoatCounter from your IP address with your browser's user-agent string. GoatCounter does not store IP addresses.
+
+Never sent: the page address, anything after `#` in a link (which is where challenges travel), names, notes, photos, answers, or any identifier. Nothing is stored on your device for this.
+
+Nothing at all is sent if your browser asks not to be tracked (Do Not Track or Global Privacy Control), or from any copy of the game that is not the live site (a file on disk, a local server, a fork). Setting `ANALYTICS = ""` in `index.html` switches it off completely.
 
 ## Development
 

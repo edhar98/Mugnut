@@ -312,6 +312,94 @@ test.describe("archive and countdown", () => {
     await expect(page.locator("#dNext")).toHaveText("");
   });
 
+  test("a recorded answer survives the clock going backwards", async ({ page }) => {
+    await page.clock.setFixedTime(at(2026, 11, 12));
+    await page.goto("./");
+    const play = async correct => { await page.locator("#dailyBtn").click(); const g = await answerCurrent(page, correct); await page.locator("#nextBtn").click(); await page.locator("#homeBtn").click(); return g; };
+    const g3 = await play(true);
+    await page.clock.setFixedTime(at(2026, 11, 13));
+    await page.reload();
+    await play(true);
+    const before = { daily: await stored(page), log: await log(page) };
+    expect(before.daily).toMatchObject({ day: "2026-11-13", streak: 2 });
+
+    // back to the 12th: #3 is shown as already answered and nothing can be rewritten
+    await page.clock.setFixedTime(at(2026, 11, 12, 9));
+    await page.reload();
+    await page.locator("#dailyBtn").click();
+    await expect(page.locator("#name")).toHaveText("Closed book");
+    await expect(page.locator("#opts .opt:disabled")).toHaveCount(6);
+    await expect(page.locator(`#opts .opt[data-g="${g3}"]`)).toHaveClass(/correct/);
+    expect({ daily: await stored(page), log: await log(page) }).toEqual(before);
+
+    await page.clock.setFixedTime(at(2026, 11, 13, 12));
+    await page.reload();
+    await expect(page.locator("#dTag")).toHaveText("✓ Done · streak 2");
+  });
+
+  test("an object left open in one tab cannot overwrite the answer given in another", async ({ page, context }) => {
+    await page.clock.setFixedTime(at(2026, 11, 12, 23, 59));
+    await page.goto("./");
+    await page.locator("#dailyBtn").click(); // tab A: #3 open, unanswered
+    await expect(page.locator("#name")).toHaveText("Closed book");
+
+    const b = await context.newPage(); // tab B, after midnight: plays #3 from the archive, then today's #4
+    await b.clock.setFixedTime(at(2026, 11, 13, 0, 1));
+    await b.goto("./");
+    await b.locator("#archiveBtn").click();
+    await b.locator('#arList .arrow[data-num="3"]').click();
+    const wrong = await answerCurrent(b, false);
+    await b.locator("#quitBtn").click();
+    await b.locator("#dailyBtn").click();
+    await answerCurrent(b, true);
+    const before = { daily: await stored(b), log: await log(b) };
+    expect(before.daily).toMatchObject({ day: "2026-11-13", num: 4, streak: 1 });
+
+    // tab A now answers correctly: it is shown the recorded (wrong) answer instead, and nothing changes
+    await page.clock.setFixedTime(at(2026, 11, 13, 0, 2));
+    const right = await page.evaluate(() => G.deck[0].g);
+    await page.locator(`#opts .opt[data-g="${right}"]`).click();
+    await expect(page.locator("#fb")).toHaveClass(/bad/);
+    await expect(page.locator(`#opts .opt[data-g="${wrong}"]`)).toHaveClass(/wrong/);
+    expect({ daily: await stored(page), log: await log(page) }).toEqual(before);
+  });
+
+  test("a result screen left open past midnight says a new object is waiting", async ({ page }) => {
+    await page.clock.setFixedTime(at(2026, 11, 12, 23, 59, 30));
+    await page.goto("./");
+    await page.locator("#dailyBtn").click();
+    await answerCurrent(page, true);
+    await page.locator("#nextBtn").click();
+    await expect(page.locator("#verdict")).toHaveText("Day streak: 1. Next object in 30s.");
+    await page.clock.setFixedTime(at(2026, 11, 13, 0, 0, 5));
+    await expect(page.locator("#verdict")).toHaveText("Day streak: 1. A new object is waiting.");
+    await page.clock.setFixedTime(at(2026, 11, 13, 0, 5, 0));
+    await page.waitForTimeout(1300);
+    await expect(page.locator("#verdict")).toHaveText("Day streak: 1. A new object is waiting.");
+  });
+
+  test("the share confirmation is not overwritten by the countdown", async ({ page }) => {
+    await page.clock.setFixedTime(at(2026, 11, 12, 12));
+    await page.goto("./");
+    await page.locator("#dailyBtn").click();
+    await answerCurrent(page, true);
+    await page.locator("#nextBtn").click();
+    await page.locator("#againBtn").click();
+    await expect(page.locator("#verdict")).toHaveText("Result copied — paste it into any chat.");
+    await page.waitForTimeout(1300);
+    await expect(page.locator("#verdict")).toHaveText("Result copied — paste it into any chat.");
+  });
+
+  test("old records with impossible values are not carried into the archive", async ({ page }) => {
+    await page.clock.setFixedTime(at(2026, 11, 14));
+    await page.goto("./");
+    for (const rec of [{ day: "2026-11-11", g: 99, ok: true, streak: 1 }, { day: "2026-11-11", num: 1e300, g: 1, ok: true, streak: 1 }, { day: "2031-01-01", g: 1, ok: true, streak: 1 }, { day: "2020-01-01", g: 1, ok: true, streak: 1 }]) {
+      await page.evaluate(r => { localStorage.setItem("mugnut:daily", JSON.stringify(r)); localStorage.removeItem("mugnut:daily-log"); }, rec);
+      await page.reload();
+      expect(await log(page), JSON.stringify(rec)).toBeNull();
+    }
+  });
+
   test("the archive fits a narrow phone", async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 740 });
     await page.clock.setFixedTime(at(2026, 12, 30));
