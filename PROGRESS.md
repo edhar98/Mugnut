@@ -1,6 +1,6 @@
 # Mugnut — progress
 
-Updated: 2026-11-10
+Updated: 2026-11-11
 
 ## Done
 
@@ -22,16 +22,26 @@ Updated: 2026-11-10
   - Found by the independent review and fixed: a fractional answer in a link was stored and broke the Friends hub for good; ids such as `__proto__` or `constructor` in a link reached built-in objects; the daily streak reset around daylight-saving changes; an object opened before midnight and answered after it was recorded against the next day; "Share result" did nothing where neither sharing nor the clipboard is available.
   - "Plus-shaped pipe" drew stray lines across its joint (a duplicate `stroke` attribute that was also invalid SVG).
 
+### Phase 1 — Validation features (web)
+Each item was built on its own branch, reviewed by an agent that did not write it, and checked on the live site after merging.
+
+- **Build stamp** ([#2](https://github.com/edhar98/Mugnut/pull/2), merged): the offline cache is named after a hash of the shipped files, written by `tools/stamp.js`; a pre-commit hook, a test and a GitHub Action keep it current. Offline play is tested with the service worker on.
+- **Analytics** ([#3](https://github.com/edhar98/Mugnut/pull/3), merged): GoatCounter, site code `mugnut`, behind `ANALYTICS` in `index.html` (`""` switches it off). No third-party script, no cookies. Sends a page view and fixed event names, the screen width and the referring site's host name; only from the live host; nothing under Do Not Track / Global Privacy Control. The review caught the first version forwarding the full referring address, which could contain a challenge link; fixed before merge, with a test that reproduces it. README has a Privacy section stating exactly what is sent.
+- **Daily archive, countdown, pinned rotation** ([#4](https://github.com/edhar98/Mugnut/pull/4), merged): "Past objects" lists earlier days and lets a missed one be played once without touching the streak; the menu and result screen count down to the next object; the rotation uses a fixed pool of the first 100 objects, so new objects never change past or future days. The share text never reveals the answer.
+- **Open Graph image** ([#5](https://github.com/edhar98/Mugnut/pull/5)): `og.png`, 1200×630, rendered from the game's own art by `tools/make-og.js`.
+- **Photos in IndexedDB** ([#6](https://github.com/edhar98/Mugnut/pull/6)): sharp photos moved out of `localStorage` with a one-time background migration; broken records from old malformed links are cleaned up; link previews and the number of received challenges are capped; service worker hardening.
+
+Suite: 127 passed, 3 skipped (offline emulation with a service worker is Chromium-only), on Pixel 7 / Chromium and iPhone 14 / WebKit.
+
 ## In progress
-- Phase 1 — validation features (analytics hook, daily archive and countdown, Open Graph image, automatic cache version, photos in IndexedDB).
+- Nothing. Next is Phase 2 (content to 250+ objects, hole highlighting, Armenian and Russian, accessibility).
 
 ## Blocked on the human
-- Nothing blocking. Gate 0 answered: GoatCounter, site code `mugnut`; analytics is not wired in yet (Phase 1).
+- Nothing blocking. See `HUMAN_TODO.md` for the GoatCounter email verification.
 
 ## Backlog notes
-- **Before adding objects (Phase 2):** the daily object is picked by position in `OBJECTS`, so adding or reordering objects changes every day's object. Give the daily rotation its own fixed list first.
-- Phones that opened a malformed challenge link on the current live site keep a bad record that still breaks their Friends list; drop received entries with a non-integer answer when loading (do with the IndexedDB migration).
-- Link data is not size-capped: a very large pasted link can fill browser storage, after which saves fail silently. Cap preview length and the number of received challenges (fits with the IndexedDB move in Phase 1).
+- New objects must be appended to the end of `OBJECTS`; the first 100 entries are the daily rotation and must not be reordered or removed (a test pins this).
+- Analytics is off inside a future native app (it only fires on the live web host); decide in Phase 3 whether the apps should count too.
+- No test covers a real upgrade from an old service worker to a new one (checked by hand by the reviewer).
 - Challenges created in Safari travel without an in-link preview (JPEG headers alone exceed the caption budget). The attached photo still goes through the share sheet. Native share in Phase 3 removes the limit; a smaller hand-rolled preview format would fix it on the web.
-- `og:image` currently points at the 512 px icon; a 1200×630 image is planned in Phase 1.
 - The home text says "100 objects"; it must follow the object count when content grows in Phase 2.

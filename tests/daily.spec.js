@@ -331,6 +331,10 @@ test.describe("archive and countdown", () => {
     await expect(page.locator("#opts .opt:disabled")).toHaveCount(6);
     await expect(page.locator(`#opts .opt[data-g="${g3}"]`)).toHaveClass(/correct/);
     expect({ daily: await stored(page), log: await log(page) }).toEqual(before);
+    // the menu agrees with the lock
+    await page.locator("#quitBtn").click();
+    await expect(page.locator("#dTag")).toHaveText("✓ Done");
+    await expect(page.locator("#dNext")).toContainText("Next object in");
 
     await page.clock.setFixedTime(at(2026, 11, 13, 12));
     await page.reload();

@@ -5,5 +5,9 @@ if ! git diff --quiet -- index.html sw.js manifest.webmanifest icons; then
   echo "pre-commit: index.html, sw.js, the manifest or icons have unstaged changes; stage or stash them first." >&2
   exit 1
 fi
+# every file the service worker caches must be committed, or installing it fails once deployed
+for f in $(node -e 'const s=require("fs").readFileSync("sw.js","utf8");console.log(JSON.parse(s.match(/const FILES = (\[[\s\S]*?\]);/)[1]).filter(f=>f!=="./").join("\n"))'); do
+  git ls-files --error-unmatch "$f" >/dev/null 2>&1 || { echo "pre-commit: sw.js caches $f, which is not tracked by git; git add it first." >&2; exit 1; }
+done
 node tools/stamp.js >/dev/null || exit 1
 git add sw.js
