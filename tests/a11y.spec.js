@@ -131,7 +131,7 @@ test("screen readers are told the question, the options and the outcome", async 
   await expect(page.locator(`#opts .opt[data-g="${wrong}"]`)).toHaveAccessibleName(/your answer/i);
   await expect(page.locator("#hearts")).toHaveAttribute("aria-label", "2 lives left");
   // the hole rings are decoration for the eye; the legend text carries the meaning
-  expect(await page.locator("#pic svg .marks").count() === 0 || await page.locator("#pic svg .marks").getAttribute("aria-hidden") === "true").toBe(true);
+  for (const m of await page.locator("#pic svg .marks").all()) await expect(m).toHaveAttribute("aria-hidden", "true"); // presence is tested in packs.spec.js
 });
 
 test("tap targets are at least 44 px tall on the main screens", async ({ page }) => {

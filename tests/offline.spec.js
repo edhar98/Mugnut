@@ -21,6 +21,16 @@ test("every file the service worker caches is tracked by git", async () => {
   for (const f of JSON.parse(sw.match(/const FILES = (\[[\s\S]*?\]);/)[1]).filter(f => f !== "./")) expect(tracked, f).toContain(f);
 });
 
+test("the service worker caches every script the page loads and every language it can switch to", async ({ page, request }) => {
+  await page.goto("./");
+  const sw = await (await request.get("sw.js")).text();
+  const files = JSON.parse(sw.match(/const FILES = (\[[\s\S]*?\]);/)[1]);
+  const scripts = await page.evaluate(() => [...document.querySelectorAll("script[src]")].map(s => s.getAttribute("src")));
+  const langs = await page.evaluate(() => Object.keys(LANGS).filter(l => l !== "en").map(l => `lang/${l}.js`));
+  expect(scripts.length).toBeGreaterThan(5);
+  for (const f of [...scripts, ...langs, "index.html", "manifest.webmanifest"]) expect(files, f).toContain(f);
+});
+
 test.describe("offline", () => {
   test.use({ serviceWorkers: "allow" });
   // Playwright can only take a service-worker-controlled page offline reliably in Chromium.
@@ -53,6 +63,49 @@ test.describe("offline", () => {
     await context.setOffline(true);
     await page.goto("./");
     await expect(page.locator("#home")).toBeVisible();
+    await context.setOffline(false);
+  });
+
+  test("an update arrives whole: a new page never runs with old scripts, online or offline afterwards", async ({ page, context }) => {
+    const errors = [];
+    page.on("pageerror", e => errors.push(String(e)));
+    await page.goto("./");
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
+    await expect(page.locator("#home")).toBeVisible();
+
+    // The site is redeployed: the page now needs something only the new objects.js has. The installed worker is the old one.
+    const fs = require("fs"), root = require("path").resolve(__dirname, "..");
+    await context.route("**/sw.js", r => r.abort()); // the worker update itself does not get through on this visit
+    await context.route("**/objects.js", r => r.fulfill({ contentType: "text/javascript", body: fs.readFileSync(root + "/objects.js", "utf8") + "\nconst FROM_V2 = () => 'v2';\n" }));
+    await context.route(url => /\/(index\.html)?$/.test(url.pathname), r => r.fulfill({ contentType: "text/html", body: fs.readFileSync(root + "/index.html", "utf8").replace("</body>", "<script>document.documentElement.dataset.v = FROM_V2();</script></body>") }));
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-v", "v2");
+    await expect(page.locator("#levelBtns .lvbtn")).toHaveCount(4);
+
+    // and what is kept for offline use is that same matching pair
+    await context.setOffline(true);
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-v", "v2");
+    await expect(page.locator("#levelBtns .lvbtn")).toHaveCount(4);
+    await page.locator('#packBtns .lvbtn').first().click();
+    await expect(page.locator("#pic svg")).toBeVisible();
+    await context.setOffline(false);
+    expect(errors).toEqual([]);
+  });
+
+  test("every pack and both languages work with no network", async ({ page, context }) => {
+    await page.goto("./");
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
+    await context.setOffline(true);
+    await page.reload();
+    await expect(page.locator("#packBtns .lvbtn")).toHaveCount(5);
+    expect(await page.evaluate(() => OBJECTS.length)).toBeGreaterThanOrEqual(257);
+    for (const lang of ["hy", "ru"]) {
+      await page.locator("#langSel").selectOption(lang);
+      await expect(page.locator("html")).toHaveAttribute("lang", lang);
+    }
     await context.setOffline(false);
   });
 

@@ -312,6 +312,11 @@
 <script src="packs/controversies.js"></script>
 <script>
 // The drawing helpers and const OBJECTS = [ ... ] now live in objects.js; themed packs in packs/*.js.
+if(typeof OBJECTS === "undefined" || typeof PACKS === "undefined"){
+  // objects.js did not arrive (a network blip on the first visit): say so instead of showing a menu whose buttons do nothing
+  document.querySelector(".wrap").innerHTML = '<h1>Mugnut</h1><p>The game did not finish loading. Check your connection and try again.</p><button class="btn" onclick="location.reload()">Reload</button>';
+  throw new Error("objects.js did not load");
+}
 
 // ---------- languages ----------
 // English lives here and is the source of truth. Other languages are plain scripts, lang/<code>.js, loaded only when
@@ -509,7 +514,14 @@ const I18N = {en:{ui:STR, obj:{}}};
 let LANG = "en";
 const own = (o,k) => Object.prototype.hasOwnProperty.call(o,k) ? o[k] : undefined;   // keys and ids may come from links or storage: never read inherited properties
 const pluralRules = {};
-function pluralOf(lang, n){ try{ return (pluralRules[lang] || (pluralRules[lang] = new Intl.PluralRules(lang))).select(Number(n)); }catch(e){ return "other"; } }
+// Browsers without plural data for a language silently use the English rule, which is wrong for Russian: it has its own here.
+const ruPlural = n => { n = Math.abs(Number(n)); if(!Number.isInteger(n)) return "other"; const a = n%10, b = n%100; return a===1 && b!==11 ? "one" : a>=2 && a<=4 && !(b>=12 && b<=14) ? "few" : "many"; };
+function pluralOf(lang, n){
+  try{
+    if(!Intl.PluralRules.supportedLocalesOf(lang).length) return lang==="ru" ? ruPlural(n) : Number(n)===1 ? "one" : "other";
+    return (pluralRules[lang] || (pluralRules[lang] = new Intl.PluralRules(lang))).select(Number(n));
+  }catch(e){ return lang==="ru" ? ruPlural(n) : "other"; }
+}
 // The text for `key` in the current language, or in English when that language lacks it. Placeholders are filled once,
 // from `vars` only (a value that itself contains braces is left alone); `fallback` is returned for a key nobody has.
 function t(key, vars, fallback){
@@ -546,8 +558,11 @@ function loadLang(code){
   if(own(I18N, code)) return Promise.resolve(true);
   return langLoads[code] || (langLoads[code] = new Promise(res=>{
     const s = document.createElement("script"); s.src = `lang/${code}.js`;
-    s.onload = () => res(!!own(I18N, code));
-    s.onerror = () => { delete langLoads[code]; s.remove(); res(false); };
+    // a failure of any kind (error, a response that is not the file, no answer in 15 s) can be retried by choosing again
+    const done = ok => { clearTimeout(timer); if(!ok){ delete langLoads[code]; s.remove(); } res(ok); };
+    const timer = setTimeout(()=>done(!!own(I18N, code)), 15000);
+    s.onload = () => done(!!own(I18N, code));
+    s.onerror = () => done(false);
     document.head.append(s);
   }));
 }
@@ -565,10 +580,16 @@ async function setLang(code, save){
   wantLang = code;
   const ok = await loadLang(code);
   if(wantLang !== code) return;   // another choice was made while this one was loading
-  LANG = ok ? code : "en";        // could not be loaded (offline, say): stay in English; the choice is kept for next time
-  applyI18n();
-  if(booted && !$("home").classList.contains("hidden")) renderHome();
+  if(!ok && booted){ applyI18n(); return; }   // could not be loaded (offline, say): keep the language on screen; the choice is kept for next time
+  const apply = () => { pendingLang = null; LANG = ok ? code : "en"; applyI18n(); };
+  // A screen that is in use (a question, a form) is built from several strings; changing language under it would leave
+  // it half translated. The switch waits for the menu, where everything is redrawn.
+  if(booted && $("home").classList.contains("hidden")){ pendingLang = apply; return; }
+  const y = window.scrollY;
+  apply();
+  if(booted){ renderHome(); window.scrollTo(0, y); }   // the picker is at the bottom of the menu: stay there
 }
+let pendingLang = null;
 
 // ---------- shapes & levels ----------
 // SHAPES and SHAPE_SUB are the English labels (the texts are shape.<g> and shapeSub.<g>); what is shown goes through shape() and friends.
@@ -624,6 +645,7 @@ function show(id){
   shown = true;
 }
 let shown = false;   // the first screen does not take focus from the page
+
 // right or wrong must not be told by colour alone: the option buttons say it in words too
 function markOptions(container, right, picked){
   container.querySelectorAll(".opt").forEach(b=>{ const bg=+b.dataset.g; b.disabled=true;
@@ -662,6 +684,7 @@ function track(event){
 
 // ---------- home ----------
 function renderHome(){
+  if(pendingLang) pendingLang();   // a language that finished loading during a game
   const jb = store.get("best-journey");
   $("jBest").textContent = jb ? t("home.best",{n:jb, of:24}) : "";
   // today counts as done if either record says so, the same rule startDaily uses to lock it
@@ -805,6 +828,9 @@ function answer(g){
   setTimeout(()=>$("fb").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"nearest"}), 50);
 }
 $("nextBtn").onclick = ()=>{ G.idx++; nextQuestion(); };
+// a key held down on an option must not run on into Next and skip the explanation
+$("nextBtn").addEventListener("keydown", e=>{ if(e.repeat) e.preventDefault(); });
+
 function finish(){
   const total = G.deck.length;
   $("final").textContent = `${G.score}/${total}`;

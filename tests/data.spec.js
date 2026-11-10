@@ -70,3 +70,12 @@ test("the daily object is defined every day, with no repeats within a cycle, eve
   }
   expect(seen.size).toBe(n);
 });
+
+test("the core 100 objects are exactly the ones players already have", async ({ page }) => {
+  // Fingerprint of level, name, qualifier, genus, explanation and drawing of the first 100 entries, in order.
+  // They are the daily rotation and what past answers refer to. If you changed one on purpose (a wording fix, say),
+  // update the fingerprint in the same commit and say why in its message; never reorder or remove entries.
+  await page.goto("./");
+  const data = await page.evaluate(() => JSON.stringify(OBJECTS.slice(0, 100).map(o => [o.lv, o.name, o.sub || "", o.g, o.ex, o.svg])));
+  expect(require("crypto").createHash("sha256").update(data).digest("hex").slice(0, 16)).toBe("4a29075a8f1279a7");
+});

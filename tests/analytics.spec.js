@@ -75,7 +75,13 @@ test.describe("on the live site's address", () => {
     await page.locator("#dailyBtn").click();
     await page.locator("#nextBtn").click();
 
-    expect(await events(page)).toEqual([
+    await page.locator("#homeBtn").click();
+    await page.locator('#packBtns .lvbtn[data-pack="tools"]').click();
+    for (let i = 0; i < 10; i++) { await answerCurrent(page, true); await page.locator("#nextBtn").click(); }
+    await page.locator("#homeBtn").click();
+
+    expect((await events(page)).slice(-2)).toEqual(["round-start-pack-tools", "round-finish-pack-tools"]);
+    expect((await events(page)).slice(0, -2)).toEqual([
       "round-start-level-1", "round-finish-level-1",
       "round-start-journey", "round-finish-journey",
       "daily-played", "share-daily",
