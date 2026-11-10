@@ -41,18 +41,27 @@ Merged as [#7](https://github.com/edhar98/Mugnut/pull/7) after independent revie
 - **Hole highlighting**: every object carries `holes` / `open` coordinates; after an answer the picture shows a solid ring on each through-hole and a dashed ring on each opening into a shared space, with a one-line legend ("4 openings into one space, which make 3 holes"). A test checks that the marks of all 257 objects add up to their answers.
 - **Localisation**: all interface strings in a table (`STR`, `t()`), Armenian and Russian in `lang/hy.js` / `lang/ru.js` loaded on demand, language picker on the menu, all 257 objects translated (name, qualifier, explanation). Every screen is tested at 360 px in both languages for overflow, clipping, raw keys and leftover English.
 - **Accessibility**: automated WCAG 2.1 A/AA audit (axe) of every screen in three languages; colours darkened to pass contrast; focus moves with the action and has a visible ring; option buttons and lives are labelled for screen readers and right/wrong is not told by colour alone; tap targets are at least 44 px; no animation under reduced motion.
-- Not built: the **Beyond genus** pack (Möbius strip, Klein bottle, knots). It needs a new question type; the design is with the human for a decision.
+- Not built: the **Beyond genus** pack (Möbius strip, Klein bottle, knots). The human decided at Gate 2 to skip it.
 
 Suite: 231 passed, 7 skipped, on Pixel 7 / Chromium and iPhone 14 / WebKit.
 
-## In progress
-- Waiting at Gate 2 for the human's decisions; Phase 3 (native apps) is next.
+### Phase 3 — Native apps
+**Not compiled or run yet: this Mac has no Xcode, Java or Android SDK.** Everything below was verified in the browser against a stand-in for the app shell, and once against Capacitor's real core script; none of it has touched StoreKit, Play Billing or a real device.
 
-## Blocked on the human (Gate 2)
-- Look at the screenshots and pack sheets in `docs/gate2/` (local, not committed).
-- A native-speaker pass over the Armenian and Russian wording (lists of doubtful words are in the Gate 2 report).
-- Decide the Beyond genus question type.
-- Judgement calls worth a look: "Person" (genus 3 under a stated model of which passages count), "Bowling ball, holes drilled to meet inside", "Balloon, tied shut".
+- **Capacitor 8** projects in `ios/` (Swift packages, no CocoaPods) and `android/`, app id `app.mugnut.game`, portrait only, icons and launch images generated from the game's icon by `tools/make-app-icons.js`.
+- `tools/build-web.js` copies the root web files to `dist/` (Capacitor's `webDir`), adds Capacitor's core script, and leaves the service worker out. `npm run cap:sync` for store builds, `npm run cap:sync:mock` for builds with a simulated store.
+- `native.js`: on the web it does nothing. In the apps: share sheet with the photo attached, the camera for "Take photo", a buzz on right and wrong answers, an opt-in daily reminder at 9:00 (a local notification, no server), links that open the app, no service worker, no analytics.
+- **One-time unlock** behind a `Store` interface with a real back end (the NativePurchases plugin: StoreKit / Play Billing, product `unlock_all`) and a mock. Free in the apps: Easy and Medium (core objects), the daily object, friend challenges, a 12-object Journey. Paid: Hard, Expert, all packs, the full Journey. Includes "Restore purchases"; refunds and purchases from another device are picked up at start. The web version has no paywall.
+- **Store assets**: `store/icon-1024.png`, `store/feature-1024x500.png`, `store/listing.md` (English, Armenian, Russian), screenshots for iPhone 6.9", iPad 13" and Android phones in three languages via `tools/make-store-shots.js` (taken from the game code in a browser at device size, not from devices), and `privacy.html`.
+- Gate 3 checklist (tools to install, accounts, products, signing, app links, submission) is in `HUMAN_TODO.md`.
+
+Suite: 281 passed, 7 skipped.
+
+## In progress
+- Waiting at Gate 3: the build tools must be installed before the apps can be compiled, run and corrected.
+
+## Blocked on the human
+- Install Xcode and Android Studio; create the developer accounts; decide the app id and the app-links route. See `HUMAN_TODO.md`.
 
 ## Backlog notes
 - Service worker: fetches are network-first with no timeout, so on a connection that stalls (rather than fails) the menu can sit without working buttons until the browser gives up. Add one timeout covering the page and its scripts together.
@@ -62,7 +71,7 @@ Suite: 231 passed, 7 skipped, on Pixel 7 / Chromium and iPhone 14 / WebKit.
 - Small follow-ups from the last review, none affecting stored data: the share card right after creating a challenge shows the link preview rather than the sharp photo; "Share again" can wait several seconds if IndexedDB hangs; the "See it sharp" label can show wrongly if two challenges are opened within milliseconds; `tools/make-og.js` uses Apple system fonts, so regenerate `og.png` on a Mac.
 - The GitHub Action only checks the build stamp; it does not run the Playwright suite.
 - New objects must be appended to the end of `OBJECTS`; the first 100 entries are the daily rotation and must not be reordered or removed (a test pins this).
-- Analytics is off inside a future native app (it only fires on the live web host); decide in Phase 3 whether the apps should count too.
+- The apps send no analytics at all (the privacy policy says so). Conversion from free to paid is therefore visible only in the stores' own sales reports.
 - No test covers a real upgrade from an old service worker to a new one (checked by hand by the reviewer).
 - Challenges created in Safari travel without an in-link preview (JPEG headers alone exceed the caption budget). The attached photo still goes through the share sheet. Native share in Phase 3 removes the limit; a smaller hand-rolled preview format would fix it on the web.
 - The home text says "100 objects"; it must follow the object count when content grows in Phase 2.

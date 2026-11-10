@@ -21,3 +21,13 @@ dist/
 keystore.properties
 google-services.json
 GoogleService-Info.plist
+
+# native apps and store assets
+store/screens/
+android/app/release/
+android/keystore/
+*.aab
+*.apk
+*.ipa
+*.xcarchive
+ios/App/build/

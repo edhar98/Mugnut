@@ -143,15 +143,17 @@
 <section id="home" tabindex="-1">
   <h1>Mugnut</h1>
   <p class="muted" style="margin:0 0 18px"><span data-t="home.intro">To a topologist, a coffee mug and a donut are the same thing.</span> <span id="objCount">100</span> <span id="objRest">objects, 4 levels — can you see the world that way?</span></p>
+  <div class="note hidden" id="homeNote" role="status" style="margin:0 0 14px"></div>
   <div class="stack">
     <button class="mode" id="dailyBtn">
       <div class="row"><h3 data-t="home.daily.h">Today's object</h3><span class="tag" id="dTag"></span></div>
       <p data-t="home.daily.p">One object a day, the same for everyone. Guess it, then dare a friend.</p>
     </button>
     <div class="under hidden" id="archiveRow"><span class="muted" id="dNext"></span><button class="link" id="archiveBtn" data-t="archive.title">Past objects</button></div>
+    <div class="under hidden" id="remindRow"><span></span><button class="link" id="remindBtn" aria-pressed="false"></button></div>
     <button class="mode" id="journeyBtn">
       <div class="row"><h3 data-t="home.journey.h">Journey</h3><span class="tag" id="jBest"></span></div>
-      <p data-t="home.journey.p">Start easy and climb to expert. 24 objects, 3 lives.</p>
+      <p id="journeyP">Start easy and climb to expert. 24 objects, 3 lives.</p>
     </button>
     <div class="mode" style="cursor:default">
       <div class="row"><h3 data-t="home.level.h">Pick a level</h3><span class="tag" data-t="home.ten">10 objects</span></div>
@@ -217,6 +219,20 @@
     <button class="btn" id="againBtn">Play again</button>
     <button class="btn ghost" id="homeBtn" data-t="end.menu">Menu</button>
   </div>
+</section>
+
+<!-- UNLOCK (native apps only) -->
+<section id="unlock" class="hidden" tabindex="-1">
+  <div class="back"><button class="link" data-home data-t="nav.menu">← Menu</button></div>
+  <h2 data-t="unlock.title">Unlock everything</h2>
+  <p class="muted" style="margin-top:0" data-t="unlock.lead">You're playing the free part: Easy, Medium, the daily object and friend challenges.</p>
+  <div class="card"><ul class="rules" style="margin:0" id="unlockList"></ul></div>
+  <p class="muted" style="font-size:14px" data-t="unlock.terms">One payment, yours for good. No ads, no subscription.</p>
+  <div class="stack">
+    <button class="btn" id="buyBtn"></button>
+    <button class="btn ghost" id="restoreBtn" data-t="unlock.restore">Restore purchases</button>
+  </div>
+  <div class="note hidden" id="unlockNote" role="status" style="margin-top:12px"></div>
 </section>
 
 <!-- DAILY ARCHIVE -->
@@ -310,6 +326,7 @@
 <script src="packs/tools.js"></script>
 <script src="packs/letters.js"></script>
 <script src="packs/controversies.js"></script>
+<script src="native.js"></script>
 <script>
 // The drawing helpers and const OBJECTS = [ ... ] now live in objects.js; themed packs in packs/*.js.
 if(typeof OBJECTS === "undefined" || typeof PACKS === "undefined"){
@@ -336,6 +353,26 @@ const STR = {
   "home.best":"Best {n}/{of}",
   "home.journey.h":"Journey",
   "home.journey.p":"Start easy and climb to expert. 24 objects, 3 lives.",
+  "home.journey.free":"Start easy and climb. 12 objects, 3 lives.",
+  "home.locked":"🔒 Unlock",
+  "unlock.title":"Unlock everything",
+  "unlock.lead":"You're playing the free part: Easy, Medium, the daily object and friend challenges.",
+  "unlock.item.levels":"Hard and Expert levels",
+  "unlock.item.packs":"All {n} packs: {count} more objects",
+  "unlock.item.journey":"The full Journey through all four levels",
+  "unlock.terms":"One payment, yours for good. No ads, no subscription.",
+  "unlock.buy":"Unlock for {price}",
+  "unlock.buyNoPrice":"Unlock",
+  "unlock.restore":"Restore purchases",
+  "unlock.thanks":"Unlocked. Thank you! Everything is open.",
+  "unlock.failed":"The purchase didn't go through. You have not been charged.",
+  "unlock.unavailable":"Purchases aren't available right now. Check your connection and try again.",
+  "unlock.restored":"Purchase restored. Everything is open.",
+  "unlock.nothing":"No earlier purchase was found for this account.",
+  "remind.off":"Remind me each day",
+  "remind.on":"Daily reminder on · 9:00",
+  "remind.body":"Today's object is waiting. How many holes?",
+  "remind.denied":"Notifications for Mugnut are switched off in your phone's settings.",
   "home.level.h":"Pick a level",
   "home.ten":"10 objects",
   "home.packs.h":"Packs",
@@ -406,6 +443,7 @@ const STR = {
   "end.nextIn":"Day streak: {n}. Next object in {t}.",
   "end.journeyOver":"Journey over",
   "end.journeyDone":"Journey complete!",
+  "end.journeyFree":"That was the free half: Easy and Medium. Unlock to climb on to Hard and Expert.",
   "end.reached":"You made it to {level}.",
   "end.flawlessJ":"Flawless — a true topologist.",
   "end.allFour":"You made it through all four levels.",
@@ -636,7 +674,7 @@ const shapeName = g => t("shapeName."+g);
 
 // ---------- helpers ----------
 const $ = id => document.getElementById(id);
-const SCREENS = ["home","interlude","game","end","archive","friends","create","share","play"];
+const SCREENS = ["home","interlude","game","end","unlock","archive","friends","create","share","play"];
 function show(id){
   const moved = !$(id) || $(id).classList.contains("hidden");
   SCREENS.forEach(s=>$(s).classList.toggle("hidden", s!==id)); window.scrollTo(0,0);
@@ -686,7 +724,14 @@ function track(event){
 function renderHome(){
   if(pendingLang) pendingLang();   // a language that finished loading during a game
   const jb = store.get("best-journey");
+  const locked = isLocked();
   $("jBest").textContent = jb ? t("home.best",{n:jb, of:24}) : "";
+  $("journeyP").textContent = t(locked ? "home.journey.free" : "home.journey.p");
+  // native apps only: the daily reminder switch
+  const rem = NATIVE && Native.reminder.available();
+  $("remindRow").classList.toggle("hidden", !rem);
+  if(rem){ const on = Native.reminder.on(); $("remindBtn").textContent = t(on ? "remind.on" : "remind.off"); $("remindBtn").setAttribute("aria-pressed", String(on)); }
+  fNoteHome("");
   // today counts as done if either record says so, the same rule startDaily uses to lock it
   const dd = store.get("daily"), rec = dailyLog.get(dailyNum()), mine = dd && dd.day===localDay(), doneToday = !!(mine || rec);
   $("dTag").textContent = mine ? t("home.done",{mark:dd.ok?"✓":"✗", n:dd.streak}) : rec ? t("home.doneNoStreak",{mark:rec.ok?"✓":"✗"}) : t("home.num",{n:dailyNum()});
@@ -696,13 +741,13 @@ function renderHome(){
   $("levelBtns").innerHTML = "";
   [1,2,3,4].forEach(lv=>{ const b = store.get("best-"+lv);
     $("levelBtns").append(el("button",{class:"lvbtn", "data-lv":lv, onclick:()=>startLevel(lv)},
-      el("b",{}, el("span",{class:"dot", style:`background:${LEVELS[lv].c}`}), lvName(lv)), el("small",{text: b!=null ? t("home.best",{n:b, of:10}) : t(`lv.${lv}.t`)}))); });
+      el("b",{}, el("span",{class:"dot", style:`background:${LEVELS[lv].c}`}), lvName(lv)), el("small",{text: locked && lv>2 ? t("home.locked") : b!=null ? t("home.best",{n:b, of:10}) : t(`lv.${lv}.t`)}))); });
   // themed packs: only those that have objects
   const packs = Object.keys(PACKS).filter(id=>OBJECTS.some(o=>o.pack===id));
   $("packsCard").classList.toggle("hidden", !packs.length);
   $("packBtns").innerHTML = "";
   packs.forEach(id=>{ const b = store.get("best-pack-"+id), n = OBJECTS.filter(o=>o.pack===id).length;
-    $("packBtns").append(el("button",{class:"lvbtn", "data-pack":id, onclick:()=>startPack(id)}, el("b",{text:packName(id)}), el("small",{text: b!=null ? t("home.best",{n:b, of:10}) : t("pack.count",{n})}))); });
+    $("packBtns").append(el("button",{class:"lvbtn", "data-pack":id, onclick:()=>startPack(id)}, el("b",{text:packName(id)}), el("small",{text: locked ? t("home.locked") : b!=null ? t("home.best",{n:b, of:10}) : t("pack.count",{n})}))); });
   $("objCount").textContent = OBJECTS.length; $("objRest").textContent = t("home.count",{n:OBJECTS.length});
   show("home");
 }
@@ -710,7 +755,8 @@ function renderHome(){
 // ---------- game ----------
 let G = null; // {mode, lv, deck, idx, score, lives, missed, lastLv}
 function startJourney(){
-  const deck = [1,2,3,4].flatMap(lv=>shuffle(OBJECTS.filter(o=>o.lv===lv)).slice(0,6));
+  // the free part of the apps covers the first two levels
+  const deck = [1,2,3,4].flatMap(lv=>shuffle(OBJECTS.filter(o=>o.lv===lv && playable(o))).slice(0,6));
   G = {mode:"journey", deck, idx:0, score:0, lives:3, missed:[], lastLv:0};
   track("round-start-journey");
   nextQuestion();
@@ -757,16 +803,58 @@ function shareDaily(){
     if(!navigator.clipboard) return manual();
     navigator.clipboard.writeText(text + "\n" + APP_URL).then(()=>done(t("share.copied")), manual);
   };
-  if(navigator.share){ navigator.share({text, url:APP_URL}).then(()=>done(t("share.shared"))).catch(e=>{ if(!e || e.name!=="AbortError") copy(); }); return; }
+  const fell = e=>{ if(!e || e.name!=="AbortError") copy(); };
+  if(NATIVE){ Native.share({text: text + "\n" + APP_URL}).then(()=>done(t("share.shared"))).catch(fell); return; }
+  if(navigator.share){ navigator.share({text, url:APP_URL}).then(()=>done(t("share.shared"))).catch(fell); return; }
   copy();
 }
+// ---------- the one-time unlock (native apps only; see native.js) ----------
+// Free there: Easy and Medium from the core objects, the daily object, friend challenges. On the web nothing is locked.
+const isLocked = () => Store.paywall && !Store.unlocked();
+const playable = o => !isLocked() || (!o.pack && o.lv <= 2);
+function unlockNote(msg){ $("unlockNote").textContent = msg || ""; $("unlockNote").classList.toggle("hidden", !msg); }
+function openUnlock(){
+  const packs = Object.keys(PACKS).filter(id=>OBJECTS.some(o=>o.pack===id)), list = $("unlockList");
+  list.innerHTML = "";
+  [t("unlock.item.levels"), t("unlock.item.packs",{n:packs.length, count:OBJECTS.filter(o=>o.pack).length}), t("unlock.item.journey")].forEach(x=>list.append(el("li",{text:x})));
+  $("buyBtn").textContent = t("unlock.buyNoPrice"); $("buyBtn").disabled = $("restoreBtn").disabled = false;
+  unlockNote("");
+  track("unlock-opened");
+  show("unlock");
+  Store.price().then(p=>{ if(p && !$("unlock").classList.contains("hidden")) $("buyBtn").textContent = t("unlock.buy",{price:p}); });
+}
+let buying = false;
+async function storeAction(kind){
+  if(buying) return; buying = true; $("buyBtn").disabled = $("restoreBtn").disabled = true; unlockNote("");
+  let msg = "";
+  try{
+    if(kind==="buy"){
+      const r = await Store.buy();
+      if(r==="ok"){ track("unlock-bought"); msg = t("unlock.thanks"); }
+      else if(r!=="cancelled") msg = t(r==="unavailable" ? "unlock.unavailable" : "unlock.failed");
+    } else {
+      const found = await Store.restore();
+      if(found) track("unlock-restored");
+      msg = t(found ? "unlock.restored" : "unlock.nothing");
+    }
+  }catch(e){ msg = t("unlock.failed"); }
+  buying = false; $("buyBtn").disabled = $("restoreBtn").disabled = false;
+  if(Store.unlocked()){ renderHome(); fNoteHome(msg); } else unlockNote(msg);
+}
+// a line under the menu's title, used once after a purchase
+function fNoteHome(msg){ const n = $("homeNote"); n.textContent = msg || ""; n.classList.toggle("hidden", !msg); }
+$("buyBtn").onclick = ()=>storeAction("buy");
+$("restoreBtn").onclick = ()=>storeAction("restore");
+
 function startLevel(lv){
-  G = {mode:"level", lv, deck:shuffle(OBJECTS.filter(o=>o.lv===lv)).slice(0,10), idx:0, score:0, lives:null, missed:[], lastLv:lv};
+  if(isLocked() && lv > 2) return openUnlock();
+  G = {mode:"level", lv, deck:shuffle(OBJECTS.filter(o=>o.lv===lv && playable(o))).slice(0,10), idx:0, score:0, lives:null, missed:[], lastLv:lv};
   track("round-start-level-"+lv);
   nextQuestion();
 }
 function startPack(id){
   if(!Object.prototype.hasOwnProperty.call(PACKS, id)) return;
+  if(isLocked()) return openUnlock();
   const deck = shuffle(OBJECTS.filter(o=>o.pack===id)).slice(0,10); if(!deck.length) return;
   G = {mode:"pack", pack:id, deck, idx:0, score:0, lives:null, missed:[], lastLv:0};
   track("round-start-pack-"+id);
@@ -804,6 +892,7 @@ function answer(g){
   if(G.mode==="daily" && !G.replay){ const rec = dailyLog.get(G.num); if(rec){ G.replay = true; g = rec.g; } }
   const o = G.deck[G.idx], ok = g===o.g;
   markOptions($("opts"), o.g, g);
+  if(!G.replay) Native.haptic(ok ? "good" : "bad");
   if(ok) G.score++; else { G.missed.push({o,g}); if(G.lives!=null) G.lives--; }
   if(G.mode==="daily" && !G.replay) dailyLog.set(G.num, g, ok);
   if(G.mode==="daily" && !G.replay && G.archive) track("archive-played");
@@ -850,7 +939,7 @@ function finish(){
   } else if(G.mode==="journey"){
     const reached = G.deck[Math.min(G.idx, total-1)].lv;
     $("endTitle").textContent = t(G.lives===0 ? "end.journeyOver" : "end.journeyDone");
-    $("verdict").textContent = G.lives===0 ? t("end.reached",{level:lvName(reached)}) : t(G.score===total ? "end.flawlessJ" : "end.allFour");
+    $("verdict").textContent = G.lives===0 ? t("end.reached",{level:lvName(reached)}) : total<24 ? t("end.journeyFree") : t(G.score===total ? "end.flawlessJ" : "end.allFour");
     if(G.score > (store.get("best-journey")||0)) store.set("best-journey", G.score);
   } else {
     const r = G.score/total, pack = G.mode==="pack";
@@ -866,6 +955,13 @@ function finish(){
 $("againBtn").onclick = ()=> G.mode==="daily" ? (G.archive ? openArchive() : shareDaily()) : G.mode==="journey" ? startJourney() : G.mode==="pack" ? startPack(G.pack) : startLevel(G.lv);
 $("dailyBtn").onclick = ()=>startDaily();
 $("archiveBtn").onclick = openArchive;
+$("remindBtn").onclick = async ()=>{
+  const want = !Native.reminder.on();
+  const on = await Native.reminder.set(want, {title:"Mugnut", body:t("remind.body")});
+  renderHome();
+  if(want && !on) fNoteHome(t("remind.denied"));
+  track(on ? "reminder-on" : "reminder-off");
+};
 
 // countdown to local midnight, written into any element carrying data-countdown="<text with {t} where the time goes>"
 function untilTomorrow(){
@@ -919,7 +1015,7 @@ document.querySelectorAll("[data-home]").forEach(b=>b.onclick=renderHome);
 // ---------- friend challenges (no server: links shared through any chat app) ----------
 // Challenge link:  <app>#c=<base64url(JSON)>.<base64url(webp/jpeg photo)>
 // Answer link:     <app>#r=<base64url(JSON)>
-const APP_URL = location.origin + location.pathname;
+const APP_URL = NATIVE ? PUBLIC_URL : location.origin + location.pathname;   // links people share always open the web version
 const PHOTO_BUDGET = 12000;  // optional long link with a sharp photo inside (when the photo can't be attached)
 const CAPTION_LIMIT = 1000;  // WhatsApp & Telegram cap a photo's caption at 1024 characters — the whole message must fit
 const shareText = c => t("share.challenge",{from:c.from, name:c.name});   // in the sender's language
@@ -1199,6 +1295,12 @@ async function handleFile(file){
   }catch(e){ console.warn(e); $("chErr").textContent = t("err.image"); }
 }
 $("camIn").onchange = e=>{ handleFile(e.target.files[0]); e.target.value=""; };
+// in the apps "Take photo" opens the real camera; if that is unavailable the ordinary file picker still works
+$("camIn").addEventListener("click", e=>{
+  if(!NATIVE) return;
+  e.preventDefault();
+  Native.takePhoto().then(blob=>{ if(blob) handleFile(blob); });
+});
 $("galIn").onchange = e=>{ handleFile(e.target.files[0]); e.target.value=""; };
 
 let posting = false;
@@ -1271,7 +1373,8 @@ $("shShare").onclick = async ()=>{
   track(shareCtx.kind);
   const data = {title:shareCtx.title, text:shareCtx.text + "\n" + shareCtx.url};
   try{
-    if(navigator.share){
+    if(NATIVE){ await Native.share({text:data.text, file:shareCtx.file}); $("shErr").textContent = t("share.shared"); }
+    else if(navigator.share){
       if(shareCtx.file && navigator.canShare && navigator.canShare({files:[shareCtx.file]})){
         // photo + caption: no title (some apps prepend it and push the link past the caption limit)
         await navigator.share({text:data.text, files:[shareCtx.file]});
@@ -1356,7 +1459,8 @@ document.addEventListener("error", e=>{
 }, true);
 
 // ---- offline / install ----
-if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+// (not inside the apps: their files are already on the device)
+if(!NATIVE && "serviceWorker" in navigator && location.protocol.startsWith("http")){
   window.addEventListener("load", ()=>navigator.serviceWorker.register("sw.js").catch(e=>console.warn("SW", e)));
 }
 
@@ -1389,6 +1493,10 @@ function boot(){
   tidyPhotos();
   track("/");   // one page view per load; the address and its link data are never sent
   consumeHash();
+  // the apps: links that open the app carry challenges and answers; ask the store what this account owns
+  Native.onLink(url=>{ if(handleHash(url)) history.replaceState(null, "", location.pathname); });
+  const was = Store.unlocked();
+  Store.refresh().then(()=>{ if(was!==Store.unlocked() && !$("home").classList.contains("hidden")) renderHome(); });
 }
 // English starts at once. Another language starts as soon as its file has loaded (or failed to: then in English);
 // if that takes too long the game starts in English and switches when the file arrives.
