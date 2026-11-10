@@ -1,5 +1,5 @@
 // Service worker: build stamp and offline play.
-const { test, expect } = require("@playwright/test");
+const { test, expect } = require("./helpers");
 const { compute } = require("../tools/stamp");
 
 test("the build stamp in sw.js matches the shipped files", async () => {

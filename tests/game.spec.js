@@ -1,6 +1,5 @@
 // Home, level round and Journey.
-const { test, expect } = require("@playwright/test");
-const { watchErrors, answerCurrent } = require("./helpers");
+const { test, expect, watchErrors, answerCurrent } = require("./helpers");
 
 test("home renders at phone width with all modes and no errors", async ({ page }) => {
   const errors = watchErrors(page);

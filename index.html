@@ -500,6 +500,31 @@ const shuffle = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floo
 function el(tag, props={}, ...kids){ const e=document.createElement(tag); Object.entries(props).forEach(([k,v])=>{ if(k==="class") e.className=v; else if(k==="text") e.textContent=v; else if(k==="html") e.innerHTML=v; else if(k.startsWith("on")) e[k]=v; else e.setAttribute(k,v); }); kids.flat().forEach(k=>k!=null&&e.append(k)); return e; }
 const lvChipHTML = lv => `<span class="chip" style="background:${LEVELS[lv].c}">${LEVELS[lv].n}</span>`;
 
+// ---------- analytics ----------
+// Anonymous, cookieless counts through GoatCounter: a page view and a few fixed event names.
+// Sent with each: the fixed name, the screen width, and for the page view the host name (only) of the referring site.
+// Never sent: ids, names, answers, photos, the page address or its link data. Nothing is stored on the device.
+// Set ANALYTICS to "" to switch it off.
+const ANALYTICS = "mugnut";   // GoatCounter site code (https://<code>.goatcounter.com)
+const ANALYTICS_HOSTS = ["edhar98.github.io"];   // counted only where the real game is served: not on local servers, previews or copies
+// event: one of the fixed names, or "/" for the page view
+function track(event){
+  try{
+    if(!ANALYTICS || !event || location.protocol!=="https:" || !ANALYTICS_HOSTS.includes(location.hostname)) return;
+    if(navigator.doNotTrack==="1" || navigator.globalPrivacyControl) return;
+    const q = new URLSearchParams({p: event, t: event==="/" ? "Mugnut" : event, s: String(screen.width), rnd: Math.random().toString(36).slice(2,7)});
+    if(event!=="/") q.set("e", "true");
+    else {
+      // host name only: a referring address can carry private data, even a whole challenge link, in its query string
+      let from = ""; try{ from = new URL(document.referrer).hostname; }catch(e){}
+      if(from && from!==location.hostname) q.set("r", from);
+    }
+    if(navigator.webdriver) q.set("b", "153");   // automated browsers are marked so they are not counted as people
+    const url = `https://${ANALYTICS}.goatcounter.com/count?${q}`;
+    if(!(navigator.sendBeacon && navigator.sendBeacon(url))) new Image().src = url;
+  }catch(e){}
+}
+
 // ---------- home ----------
 function renderHome(){
   const jb = store.get("best-journey");
@@ -519,6 +544,7 @@ let G = null; // {mode, lv, deck, idx, score, lives, missed, lastLv}
 function startJourney(){
   const deck = [1,2,3,4].flatMap(lv=>shuffle(OBJECTS.filter(o=>o.lv===lv)).slice(0,6));
   G = {mode:"journey", deck, idx:0, score:0, lives:3, missed:[], lastLv:0};
+  track("round-start-journey");
   nextQuestion();
 }
 // today's object: the same for everyone on the same calendar day (cycles through all 100 objects)
@@ -534,6 +560,7 @@ function startDaily(){
 }
 function shareDaily(){
   const dd = store.get("daily") || {};
+  track("share-daily");
   const text = `Mugnut #${dd.num ?? dailyNum()} 🍩 ${dd.ok ? "✅ Got it" : "❌ It fooled me"}${dd.streak>1 ? ` · ${dd.streak}-day streak` : ""}\nIs today's object a donut?`;
   const done = m => { $("verdict").textContent = m; };
   const copy = () => {
@@ -546,6 +573,7 @@ function shareDaily(){
 }
 function startLevel(lv){
   G = {mode:"level", lv, deck:shuffle(OBJECTS.filter(o=>o.lv===lv)).slice(0,10), idx:0, score:0, lives:null, missed:[], lastLv:lv};
+  track("round-start-level-"+lv);
   nextQuestion();
 }
 function nextQuestion(){
@@ -580,6 +608,7 @@ function answer(g){
     // yesterday by the calendar, not 24 hours ago: days are 23 or 25 hours long when the clocks change
     const prev = store.get("daily"), [y,m,d] = G.day.split("-").map(Number), yest = localDay(new Date(y, m-1, d-1));
     store.set("daily", {day:G.day, num:G.num, g, ok, streak: prev && prev.day===yest ? (prev.streak||0)+1 : 1});
+    track("daily-played");
   }
   $("sc").textContent = G.score;
   if(G.lives!=null) $("hearts").textContent = "♥".repeat(G.lives) + "♡".repeat(3-G.lives);
@@ -595,6 +624,7 @@ function finish(){
   const total = G.deck.length;
   $("final").textContent = `${G.score}/${total}`;
   $("againBtn").textContent = G.mode==="daily" ? "Share result" : "Play again";
+  if(G.mode!=="daily") track("round-finish-" + (G.mode==="journey" ? "journey" : "level-"+G.lv));
   if(G.mode==="daily"){
     const dd = store.get("daily") || {streak:1};
     $("endTitle").textContent = `Today's object #${G.num}`;
@@ -706,6 +736,7 @@ function handleHash(raw){
         d.received[id] = {id, name:clean(x.n,50)||"Mystery object", note:clean(x.t,160), from:clean(x.f,24)||"A friend",
           g, thumb:urlToRaw(p).replace(/[^A-Za-z0-9+/=]/g,""), mime: x.m==="w" ? "image/webp" : "image/jpeg", createdAt:+x.at||Date.now(), openedAt:Date.now(), guess:null};
         DB.save(d);
+        track("challenge-opened");
       }
       openPlay(id);
       return true;
@@ -870,6 +901,7 @@ $("postBtn").onclick = ()=>{
   const d = DB.load(); d.mine[c.id]=c;
   if(!d.postedDays.includes(localDay())) d.postedDays.push(localDay());
   DB.saveRoomy(d, c.id);   // if storage is blocked we still let them share
+  track("challenge-created");
   openShare(c, draft.photo);
 };
 
@@ -884,6 +916,7 @@ async function openShare(c, photoBlob=null){
   if(!photoBlob && c.full){ try{ photoBlob = await (await fetch(c.full)).blob(); }catch(e){} }
   const link = challengeLink(c, true);
   shareCtx = {
+    kind: "share-challenge",
     urlLong: challengeLink(c, false),
     title:`Mugnut challenge: ${c.name}`,
     text:shareText(c),
@@ -903,7 +936,7 @@ async function openShare(c, photoBlob=null){
 function openReplyShare(rc, guess){
   const r = {id:rc.id, guess, by: myName() || "A friend", at:Date.now()};
   const ok = guess===rc.g;
-  shareCtx = {title:"My Mugnut answer", text:`My answer for “${rc.name}”: ${SHAPES[guess].toLowerCase()} ${ok?"✓":"✗"}. Open to record it:`, url:answerLink(r), file:null};
+  shareCtx = {kind:"share-reply", title:"My Mugnut answer", text:`My answer for “${rc.name}”: ${SHAPES[guess].toLowerCase()} ${ok?"✓":"✗"}. Open to record it:`, url:answerLink(r), file:null};
   $("shTitle").textContent = `Send your answer to ${rc.from}`;
   $("shText").textContent = `When ${rc.from} opens this link in their Mugnut app, your answer appears under their challenge.`;
   $("shShort").classList.add("hidden");
@@ -915,6 +948,7 @@ function openReplyShare(rc, guess){
 $("shareBack").onclick = openFriends;
 $("shShare").onclick = async ()=>{
   if(!shareCtx) return;
+  track(shareCtx.kind);
   const data = {title:shareCtx.title, text:shareCtx.text + "\n" + shareCtx.url};
   try{
     if(navigator.share){
@@ -936,8 +970,9 @@ async function copyLink(){
     const ta = el("textarea",{style:"margin-top:8px"}); ta.value = txt; $("shErr").textContent = "Copy this and send it:"; $("shErr").append(ta); ta.select();
   }
 }
-$("shCopy").onclick = copyLink;
+$("shCopy").onclick = ()=>{ track(shareCtx.kind); return copyLink(); };
 $("shShort").onclick = async ()=>{
+  track(shareCtx.kind);
   const txt = shareCtx.text + "\n" + shareCtx.urlLong;
   try{
     if(navigator.share){ await navigator.share({title:shareCtx.title, text:shareCtx.text, url:shareCtx.urlLong}); $("shErr").textContent = "Shared!"; return; }
@@ -967,6 +1002,7 @@ function openPlay(id){
   $("plFb").className = "fb";
   optionButtons($("plOpts"), g=>{
     const d2 = DB.load(); d2.received[id].guess = g; DB.save(d2);
+    track("challenge-answered");
     reveal(c, g);
   });
   if(c.guess!=null) reveal(c, c.guess);
@@ -1001,6 +1037,7 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
 }
 
 renderHome();
+track("/");   // one page view per load; the address and its link data are never sent
 consumeHash();
 
 </script>
