@@ -2,12 +2,19 @@
 
 Updated: 2026-11-11
 
+## Where things stand
+- **Live on the web:** https://edhar98.github.io/Mugnut/ with everything from Phases 0–3 that affects the web: 257 objects, daily mode with archive, hole highlighting, Armenian and Russian, accessibility, anonymous counting.
+- **Phone apps:** the projects, native features and one-time unlock are written and merged, but **nothing has been compiled or run**. That needs Xcode and Android Studio on this Mac.
+- **Next:** the human's Gate 3 steps in `HUMAN_TODO.md`; then building and correcting the apps on a simulator and emulator. Phase 4 (launch posts, metrics checklist) is not started.
+- **Tests:** 303 passed, 7 skipped locally; 229 passed, 9 skipped for the web tests run against the live site.
+- All work went through pull requests #1–#8, each reviewed by an agent that did not write it, then checked on the live site after merging.
+
 ## Done
 
 ### Phase 0 — Setup
 - Independent review of `daily-mode`: changes requested, fixed, then approved.
 - Merged to `main` as [edhar98/Mugnut#1](https://github.com/edhar98/Mugnut/pull/1) (merge commit `fc1fce4`); the live site was checked afterwards by running the whole suite against it: 54 passed.
-- `MUGNUT_URL=<url> npx playwright test` runs the suite against a deployed copy (branch `live-check-config`, not merged yet: goes in with the first Phase 1 pull request after review).
+- `MUGNUT_URL=<url> npx playwright test` runs the suite against a deployed copy.
 - Git repository connected to `edhar98/Mugnut`; daily mode, result sharing and Open Graph tags committed on `daily-mode`.
 - `package.json` (dev dependencies only: Playwright, http-server) and `.gitignore` (tooling output, secrets, signing material).
 - Playwright smoke suite in `tests/`, run at two phone profiles (Pixel 7 / Chromium, iPhone 14 / WebKit): 27 tests each (54 total), also green with the runner in UTC and US Pacific time.
@@ -59,8 +66,11 @@ Merged as [#8](https://github.com/edhar98/Mugnut/pull/8); the web version was ve
 
 Suite: 303 passed, 7 skipped. Independent review: changes requested (web load guard; Android purchase states, acknowledgement and a relock race found by reading the plugin's source), fixed, approved.
 
+### Phase 4 — Launch support
+Not started (launch post drafts, a short video script, the metrics checklist).
+
 ## In progress
-- Waiting at Gate 3: the build tools must be installed before the apps can be compiled, run and corrected.
+- Nothing. Waiting at Gate 3: the build tools must be installed before the apps can be compiled, run and corrected.
 
 ## Blocked on the human
 - Install Xcode and Android Studio; create the developer accounts; decide the app id and the app-links route. See `HUMAN_TODO.md`.
@@ -74,8 +84,9 @@ Suite: 303 passed, 7 skipped. Independent review: changes requested (web load gu
 - Levels and Journey now draw from all 257 objects, packs included (intended, for variety). The daily object still uses only the core 100.
 - Small follow-ups from the last review, none affecting stored data: the share card right after creating a challenge shows the link preview rather than the sharp photo; "Share again" can wait several seconds if IndexedDB hangs; the "See it sharp" label can show wrongly if two challenges are opened within milliseconds; `tools/make-og.js` uses Apple system fonts, so regenerate `og.png` on a Mac.
 - The GitHub Action only checks the build stamp; it does not run the Playwright suite.
-- New objects must be appended to the end of `OBJECTS`; the first 100 entries are the daily rotation and must not be reordered or removed (a test pins this).
+- New objects go in a pack file; the first 100 entries of `objects.js` are the daily rotation and must not be reordered, removed or edited (a test holds a fingerprint of them).
 - The apps send no analytics at all (the privacy policy says so). Conversion from free to paid is therefore visible only in the stores' own sales reports.
-- No test covers a real upgrade from an old service worker to a new one (checked by hand by the reviewer).
-- Challenges created in Safari travel without an in-link preview (JPEG headers alone exceed the caption budget). The attached photo still goes through the share sheet. Native share in Phase 3 removes the limit; a smaller hand-rolled preview format would fix it on the web.
-- The home text says "100 objects"; it must follow the object count when content grows in Phase 2.
+- The upgrade from one deployed version to the next is tested for the page and its scripts arriving together; the one-time upgrade from the oldest single-file version was checked by hand by a reviewer.
+- Challenges created in Safari travel without an in-link preview (JPEG headers alone exceed the caption budget). The attached photo still goes through the share sheet. The apps' share sheet attaches the photo itself; a smaller hand-rolled preview format would fix it on the web.
+- Not reviewed by a native speaker: all Armenian and Russian text (interface, 257 objects, unlock screen, store listing, privacy policy), and the Armenian letter drawings.
+- Judgement calls in the content worth a human look: "Person" (genus 3 under a stated model of which passages count), "Bowling ball, holes drilled to meet inside", "Balloon, tied shut".

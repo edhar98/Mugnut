@@ -1,5 +1,7 @@
 # Things only you can do
 
+Updated: 2026-11-11. The web version is live and needs nothing from you. Everything below is about the phone apps, plus two reviews of wording.
+
 Open items first. Nothing here blocks current work unless it says so.
 
 ## Open
@@ -66,6 +68,7 @@ The apps already listen for such links; iOS additionally needs the Associated Do
 - Submit for review in each console. Reviewers will ask how to test the purchase: say "the unlock is on the menu under any locked level".
 
 ### Also waiting on you
+- Say when you want Phase 4 (launch posts for you to publish, and a metrics checklist); it is not started.
 - A native-speaker pass over the Armenian and Russian text, including the new unlock, reminder and store-listing wording (`lang/hy.js`, `lang/ru.js`, `store/listing.md`, `privacy.html`).
 - Confirm the Armenian letter drawings in the Letters pack.
 
