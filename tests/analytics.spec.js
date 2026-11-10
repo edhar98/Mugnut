@@ -9,8 +9,8 @@ const ROOT = path.resolve(__dirname, "..");
 const SITE = "https://edhar98.github.io/Mugnut/";
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".png": "image/png", ".webmanifest": "application/manifest+json" };
 
-async function serveAsPublicSite(context) {
-  await context.route("https://edhar98.github.io/**", route => {
+async function serveAsPublicSite(context, host = "edhar98.github.io") {
+  await context.route(`https://${host}/**`, route => {
     const rel = new URL(route.request().url()).pathname.replace(/^\/Mugnut\//, "") || "index.html";
     const file = path.join(ROOT, rel);
     if (!file.startsWith(ROOT) || !fs.existsSync(file)) return route.fulfill({ status: 404, body: "" });
@@ -75,7 +75,13 @@ test.describe("on the live site's address", () => {
     await page.locator("#dailyBtn").click();
     await page.locator("#nextBtn").click();
 
-    expect(await events(page)).toEqual([
+    await page.locator("#homeBtn").click();
+    await page.locator('#packBtns .lvbtn[data-pack="tools"]').click();
+    for (let i = 0; i < 10; i++) { await answerCurrent(page, true); await page.locator("#nextBtn").click(); }
+    await page.locator("#homeBtn").click();
+
+    expect((await events(page)).slice(-2)).toEqual(["round-start-pack-tools", "round-finish-pack-tools"]);
+    expect((await events(page)).slice(0, -2)).toEqual([
       "round-start-level-1", "round-finish-level-1",
       "round-start-journey", "round-finish-journey",
       "daily-played", "share-daily",
@@ -167,7 +173,7 @@ test.describe("on the live site's address", () => {
   });
 
   test("a copy of the game on any other public host counts nothing", async ({ page, context }) => {
-    await context.route("https://someone.example/**", route => route.fulfill({ status: 200, contentType: "text/html", body: fs.readFileSync(path.join(ROOT, "index.html")) }));
+    await serveAsPublicSite(context, "someone.example");
     await page.goto("https://someone.example/Mugnut/");
     await page.locator("#journeyBtn").click();
     await expect(page.locator("#interlude")).toBeVisible();
@@ -189,7 +195,7 @@ test.describe("on the live site's address", () => {
   });
 
   test("an empty site code switches analytics off", async ({ page, context }) => {
-    await context.route(SITE, route => {
+    await context.route(url => url.href === SITE, route => {
       const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
       expect(html).toContain('const ANALYTICS = "mugnut";');
       route.fulfill({ status: 200, contentType: "text/html", body: html.replace('const ANALYTICS = "mugnut";', 'const ANALYTICS = "";') });

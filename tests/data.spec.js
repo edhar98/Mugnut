@@ -1,19 +1,22 @@
 // OBJECTS data integrity: runs against the real page so it checks what ships.
 const { test, expect } = require("./helpers");
 
-test("OBJECTS has valid levels, genus values, unique names and drawable art", async ({ page }) => {
+test("every object has valid data and drawable art; the core 100 are intact", async ({ page }) => {
   await page.goto("./");
   const report = await page.evaluate(() => {
     const problems = [];
-    const perLevel = { 1: 0, 2: 0, 3: 0, 4: 0 };
+    const coreLevels = { 1: 0, 2: 0, 3: 0, 4: 0 }, packs = {};
     const seen = new Map();
+    const inBox = m => Array.isArray(m) && (m.length === 2 || m.length === 3) && m.every(Number.isFinite) && m[0] >= 0 && m[0] <= 240 && m[1] >= 0 && m[1] <= 200 && (m[2] === undefined || (m[2] >= 4 && m[2] <= 60));
     OBJECTS.forEach((o, i) => {
       const where = `#${i} "${o && o.name}"`;
-      if (![1, 2, 3, 4].includes(o.lv)) problems.push(`${where}: bad level ${o.lv}`); else perLevel[o.lv]++;
+      if (![1, 2, 3, 4].includes(o.lv)) problems.push(`${where}: bad level ${o.lv}`);
       if (!Number.isInteger(o.g) || o.g < 0 || o.g > 5) problems.push(`${where}: bad genus ${o.g}`);
-      if (typeof o.name !== "string" || !o.name.trim()) problems.push(`${where}: missing name`);
-      if (typeof o.ex !== "string" || o.ex.trim().length < 10) problems.push(`${where}: missing explanation`);
-      if (o.sub != null && typeof o.sub !== "string") problems.push(`${where}: bad sub`);
+      if (typeof o.name !== "string" || !o.name.trim() || o.name.length > 28) problems.push(`${where}: missing or over-long name`);
+      if (typeof o.ex !== "string" || o.ex.trim().length < 10 || o.ex.length > 140) problems.push(`${where}: explanation missing or over 140 characters`);
+      if (o.sub != null && (typeof o.sub !== "string" || o.sub.length > 40)) problems.push(`${where}: bad sub`);
+      if (i < 100 ? o.pack !== undefined : !Object.prototype.hasOwnProperty.call(PACKS, o.pack)) problems.push(`${where}: ${i < 100 ? "a core object must not have a pack" : "unknown pack " + o.pack}`);
+      if (i < 100) coreLevels[o.lv]++; else packs[o.pack] = (packs[o.pack] || 0) + 1;
       const key = `${o.name}|${o.sub || ""}`.toLowerCase();
       if (seen.has(key)) problems.push(`${where}: duplicate of #${seen.get(key)}`); else seen.set(key, i);
       if (typeof o.svg !== "string" || !o.svg.trim()) problems.push(`${where}: missing svg`);
@@ -22,14 +25,22 @@ test("OBJECTS has valid levels, genus values, unique names and drawable art", as
         if (doc.querySelector("parsererror")) problems.push(`${where}: svg does not parse`);
         else if (!doc.documentElement.children.length) problems.push(`${where}: svg is empty`);
         if (/NaN|undefined/.test(o.svg)) problems.push(`${where}: svg contains NaN/undefined`);
-        if (/<script|<image|href=|\son\w+=/i.test(o.svg)) problems.push(`${where}: svg has script, image or link`);
+        if (/<script|<image|<foreignObject|href=|\son\w+=/i.test(o.svg)) problems.push(`${where}: svg has script, image or link`);
+        if (i >= 100 && /<text/i.test(o.svg)) problems.push(`${where}: pack drawings must not use font text (it renders differently per device)`);
+      }
+      // hole marks, where given, must add up to the answer
+      for (const k of ["holes", "open"]) if (o[k] !== undefined && !(Array.isArray(o[k]) && o[k].every(inBox))) problems.push(`${where}: bad ${k} marks`);
+      if (o.holes !== undefined || o.open !== undefined) {
+        const h = (o.holes || []).length, n = (o.open || []).length, total = h + Math.max(0, n - 1);
+        if (o.g < 5 ? total !== o.g : total < 5) problems.push(`${where}: marks show ${total} holes but the answer is ${o.g === 5 ? "5 or more" : o.g}`);
       }
     });
-    return { count: OBJECTS.length, perLevel, problems, names: new Set(OBJECTS.map(o => o.name)).size };
+    return { count: OBJECTS.length, coreLevels, packs, problems, marked: OBJECTS.filter(o => o.holes !== undefined || o.open !== undefined).length };
   });
   expect(report.problems).toEqual([]);
-  expect(report.count).toBe(100);
-  expect(report.perLevel).toEqual({ 1: 25, 2: 25, 3: 25, 4: 25 });
+  expect(report.count).toBeGreaterThanOrEqual(100);
+  expect(report.coreLevels).toEqual({ 1: 25, 2: 25, 3: 25, 4: 25 });
+  for (const [id, n] of Object.entries(report.packs)) expect(n, `pack ${id} needs at least 10 objects for a round`).toBeGreaterThanOrEqual(10);
 });
 
 test("every level offers each answer the round can ask about, and every genus label exists", async ({ page }) => {
@@ -47,7 +58,7 @@ test("every level offers each answer the round can ask about, and every genus la
 
 test("the daily object is defined every day, with no repeats within a cycle, even before day 1", async ({ page }) => {
   await page.goto("./");
-  const n = await page.evaluate(() => OBJECTS.length);
+  const n = await page.evaluate(() => DAILY_POOL);
   const seen = new Set();
   // Calls the real dailyObject() under a moved clock. Noon UTC is the same calendar day in the pinned zone.
   for (let day = -5; day <= n; day++) {
@@ -58,4 +69,13 @@ test("the daily object is defined every day, with no repeats within a cycle, eve
     if (day >= 1) seen.add(r.key);
   }
   expect(seen.size).toBe(n);
+});
+
+test("the core 100 objects are exactly the ones players already have", async ({ page }) => {
+  // Fingerprint of level, name, qualifier, genus, explanation and drawing of the first 100 entries, in order.
+  // They are the daily rotation and what past answers refer to. If you changed one on purpose (a wording fix, say),
+  // update the fingerprint in the same commit and say why in its message; never reorder or remove entries.
+  await page.goto("./");
+  const data = await page.evaluate(() => JSON.stringify(OBJECTS.slice(0, 100).map(o => [o.lv, o.name, o.sub || "", o.g, o.ex, o.svg])));
+  expect(require("crypto").createHash("sha256").update(data).digest("hex").slice(0, 16)).toBe("4a29075a8f1279a7");
 });
