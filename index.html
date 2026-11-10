@@ -329,10 +329,10 @@
 <script src="native.js"></script>
 <script>
 // The drawing helpers and const OBJECTS = [ ... ] now live in objects.js; themed packs in packs/*.js.
-if(typeof OBJECTS === "undefined" || typeof PACKS === "undefined"){
-  // objects.js did not arrive (a network blip on the first visit): say so instead of showing a menu whose buttons do nothing
+if(typeof OBJECTS === "undefined" || typeof PACKS === "undefined" || typeof NATIVE === "undefined" || typeof Native === "undefined" || typeof Store === "undefined"){
+  // objects.js or native.js did not arrive (a network blip on the first visit): say so instead of showing a menu whose buttons do nothing
   document.querySelector(".wrap").innerHTML = '<h1>Mugnut</h1><p>The game did not finish loading. Check your connection and try again.</p><button class="btn" onclick="location.reload()">Reload</button>';
-  throw new Error("objects.js did not load");
+  throw new Error("objects.js or native.js did not load");
 }
 
 // ---------- languages ----------
@@ -366,6 +366,7 @@ const STR = {
   "unlock.restore":"Restore purchases",
   "unlock.thanks":"Unlocked. Thank you! Everything is open.",
   "unlock.failed":"The purchase didn't go through. You have not been charged.",
+  "unlock.pending":"Your purchase is waiting for approval or payment. Everything opens as soon as it goes through.",
   "unlock.unavailable":"Purchases aren't available right now. Check your connection and try again.",
   "unlock.restored":"Purchase restored. Everything is open.",
   "unlock.nothing":"No earlier purchase was found for this account.",
@@ -705,6 +706,7 @@ const ANALYTICS_HOSTS = ["edhar98.github.io"];   // counted only where the real 
 // event: one of the fixed names, or "/" for the page view
 function track(event){
   try{
+    if(NATIVE) return;   // the apps count nothing, wherever their pages are served from
     if(!ANALYTICS || !event || location.protocol!=="https:" || !ANALYTICS_HOSTS.includes(location.hostname)) return;
     if(navigator.doNotTrack==="1" || navigator.globalPrivacyControl) return;
     const q = new URLSearchParams({p: event, t: event==="/" ? "Mugnut" : event, s: String(screen.width), rnd: Math.random().toString(36).slice(2,7)});
@@ -831,7 +833,7 @@ async function storeAction(kind){
     if(kind==="buy"){
       const r = await Store.buy();
       if(r==="ok"){ track("unlock-bought"); msg = t("unlock.thanks"); }
-      else if(r!=="cancelled") msg = t(r==="unavailable" ? "unlock.unavailable" : "unlock.failed");
+      else if(r!=="cancelled") msg = t(r==="unavailable" ? "unlock.unavailable" : r==="pending" ? "unlock.pending" : "unlock.failed");
     } else {
       const found = await Store.restore();
       if(found) track("unlock-restored");
@@ -1295,7 +1297,7 @@ async function handleFile(file){
   }catch(e){ console.warn(e); $("chErr").textContent = t("err.image"); }
 }
 $("camIn").onchange = e=>{ handleFile(e.target.files[0]); e.target.value=""; };
-// in the apps "Take photo" opens the real camera; if that is unavailable the ordinary file picker still works
+// in the apps "Take photo" opens the real camera (if the player backs out, nothing changes; "From gallery" is still there)
 $("camIn").addEventListener("click", e=>{
   if(!NATIVE) return;
   e.preventDefault();
@@ -1495,6 +1497,7 @@ function boot(){
   consumeHash();
   // the apps: links that open the app carry challenges and answers; ask the store what this account owns
   Native.onLink(url=>{ if(handleHash(url)) history.replaceState(null, "", location.pathname); });
+  Native.onBack(()=>{ if(!$("home").classList.contains("hidden")) return false; renderHome(); return true; });
   const was = Store.unlocked();
   Store.refresh().then(()=>{ if(was!==Store.unlocked() && !$("home").classList.contains("hidden")) renderHome(); });
 }

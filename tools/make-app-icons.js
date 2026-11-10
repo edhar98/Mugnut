@@ -46,6 +46,9 @@ const svg = (inner, bg) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0
       await shot(path.join(res, `mipmap-${dir}/ic_launcher_round.png`), px, px, `<div style="width:100%;height:100%;border-radius:50%;overflow:hidden">${svg(torus(0.82), NAVY)}</div>`, true);
       await shot(path.join(res, `mipmap-${dir}/ic_launcher_foreground.png`), px * 2.25, px * 2.25, svg(torus(0.56), null), true); // 108dp canvas, art inside the 66dp safe zone
     }
+    // status-bar icon for the daily reminder: a white silhouette on transparent, as Android requires
+    const mark = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%"><path fill-rule="evenodd" fill="#fff" d="M256 128 C378 128 456 186 456 256 C456 326 378 384 256 384 C134 384 56 326 56 256 C56 186 134 128 256 128 Z M176 244 Q256 262 336 244 Q330 300 256 300 Q182 300 176 244 Z"/></svg>`;
+    for (const [dir, px] of [["mdpi", 24], ["hdpi", 36], ["xhdpi", 48], ["xxhdpi", 72], ["xxxhdpi", 96]]) await shot(path.join(res, `drawable-${dir}/ic_stat_icon.png`), px, px, mark, true);
     const png = f => { const b = fs.readFileSync(f); return [b.readUInt32BE(16), b.readUInt32BE(20)]; };
     for (const d of fs.readdirSync(res).filter(d => d.startsWith("drawable"))) {
       const f = path.join(res, d, "splash.png"); if (!fs.existsSync(f)) continue;

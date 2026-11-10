@@ -6,7 +6,14 @@
 // this file; it defines capacitorExports.registerPlugin, which hands out the plugin objects used below.
 // Every call is guarded: a missing plugin or a failed call must never break the game.
 
-const NATIVE = (() => { try { return !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()); } catch (e) { return false; } })();
+// The apps serve the game from the device (capacitor://localhost on iOS, https://localhost on Android). Requiring that
+// address as well means the real website can never turn native, even if it is opened inside some other app's shell.
+const NATIVE = (() => {
+  try {
+    const local = location.protocol === "capacitor:" || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+    return local && !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
+  } catch (e) { return false; }
+})();
 // Inside the app the page lives at an internal address, so links people share always point at the web version.
 const PUBLIC_URL = "https://edhar98.github.io/Mugnut/";
 
@@ -82,6 +89,12 @@ const Native = (() => {
       },
     },
 
+    // Android's back button: `back` returns true if it went somewhere; otherwise the app steps aside.
+    onBack(back) {
+      const app = plug("App"); if (!app) return;
+      try { app.addListener("backButton", () => { try { if (!back()) Promise.resolve(app.minimizeApp()).catch(() => {}); } catch (e) {} }); } catch (e) {}
+    },
+
     // Links that open the app (a challenge or an answer): the address is handed to `open`, which treats it as untrusted.
     onLink(open) {
       const app = plug("App"); if (!app) return;
@@ -101,7 +114,7 @@ const Native = (() => {
 //   Store.paywall            is there a paywall at all (native apps only)
 //   Store.unlocked()         has this device's player bought it (remembered on the device, re-checked with the store)
 //   Store.price()            -> "$2.99" in the player's currency, or null if the store cannot be reached
-//   Store.buy()              -> "ok" | "cancelled" | "failed" | "unavailable"
+//   Store.buy()              -> "ok" | "cancelled" | "pending" | "failed" | "unavailable"
 //   Store.restore()          -> true if a past purchase was found
 //   Store.refresh()          ask the store what this account owns (call once at start)
 // Two back ends: the real one (the NativePurchases plugin: StoreKit on iOS, Play Billing on Android) and a mock for
@@ -112,7 +125,21 @@ const Store = (() => {
   const remembered = () => { try { return localStorage.getItem(KEY) === "1"; } catch (e) { return false; } };
   const remember = yes => { try { yes ? localStorage.setItem(KEY, "1") : localStorage.removeItem(KEY); } catch (e) {} };
   const plugin = () => capPlugin("NativePurchases");
-  const owns = list => Array.isArray(list) && list.some(p => p && p.productIdentifier === UNLOCK_PRODUCT);
+  // A purchase counts only once it is paid. Google Play also lists purchases still waiting for payment
+  // (purchaseState "2"); the App Store lists only completed ones and sends no state.
+  const paid = p => p && p.productIdentifier === UNLOCK_PRODUCT && (p.purchaseState == null || String(p.purchaseState) === "1" || String(p.purchaseState).toUpperCase() === "PURCHASED");
+  const waiting = p => p && p.productIdentifier === UNLOCK_PRODUCT && !paid(p);
+  // Google Play refunds a purchase the app has not acknowledged within three days. The plugin acknowledges in the
+  // background and may be cut off, so anything it reports as unacknowledged is acknowledged here, and waited for.
+  const acknowledge = async (p, tx) => {
+    try { if (tx && tx.isAcknowledged === false && tx.purchaseToken && p.acknowledgePurchase) await p.acknowledgePurchase({ purchaseToken: tx.purchaseToken }); } catch (e) {}
+  };
+  // The Android plugin shares one billing connection, and overlapping calls close each other's: one call at a time.
+  let chain = Promise.resolve();
+  const serial = fn => { const run = chain.then(fn, fn); chain = run.catch(() => {}); return run; };
+  // Raised whenever a purchase or restore succeeds, so an older, slower answer from the store cannot undo it.
+  let generation = 0;
+  const unlocked = () => { generation++; remember(true); };
 
   const real = {
     async price() {
@@ -125,20 +152,33 @@ const Store = (() => {
         const ok = await p.isBillingSupported().catch(() => ({ isBillingSupported: true }));
         if (ok && ok.isBillingSupported === false) return "unavailable";
         const tx = await p.purchaseProduct({ productIdentifier: UNLOCK_PRODUCT, productType: "inapp", quantity: 1, isConsumable: false });
-        if (tx && tx.productIdentifier === UNLOCK_PRODUCT) { remember(true); return "ok"; }
+        if (waiting(tx)) return "pending";
+        if (paid(tx)) { await acknowledge(p, tx); unlocked(); return "ok"; }
         return "failed";
-      } catch (e) { return /cancel/i.test(String(e && (e.message || e.code))) ? "cancelled" : "failed"; }
+      } catch (e) {
+        // the plugins report the reason in the message on iOS and in the code on Android: look at both
+        const why = `${(e && e.message) || ""} ${(e && e.code) || ""}`;
+        if (/cancel/i.test(why)) return "cancelled";
+        if (/pending|deferred/i.test(why)) return "pending";
+        if (/already.?owned/i.test(why)) return (await real.restore()) ? "ok" : "failed";   // paid earlier: just open it
+        return "failed";
+      }
     },
-    // what the store says this account owns; null when it cannot be asked (offline): then the remembered answer stands
+    // what the store says this account owns: true, false, or null when it cannot be asked (then nothing changes)
     async owned() {
       const p = plugin(); if (!p) return null;
-      try { const r = await p.getPurchases({ productType: "inapp", onlyCurrentEntitlements: true }); return owns(r && r.purchases); } catch (e) { return null; }
+      try {
+        const r = await p.getPurchases({ productType: "inapp", onlyCurrentEntitlements: true });
+        const mine = (r && Array.isArray(r.purchases) ? r.purchases : []).filter(paid);
+        for (const tx of mine) await acknowledge(p, tx);
+        return mine.length > 0;
+      } catch (e) { return null; }
     },
     async restore() {
       const p = plugin(); if (!p) return false;
       try { await p.restorePurchases(); } catch (e) { return false; }
       const has = await real.owned();
-      if (has === true) remember(true);
+      if (has === true) unlocked();
       return has === true;
     },
   };
@@ -147,19 +187,30 @@ const Store = (() => {
   const MOCK_KEY = "mugnut:mock-store-owned";
   const mock = {
     async price() { return "$2.99"; },
-    async buy() { const how = window.MUGNUT_MOCK_STORE; if (how === "cancel") return "cancelled"; if (how === "fail") return "failed"; try { localStorage.setItem(MOCK_KEY, "1"); } catch (e) {} remember(true); return "ok"; },
+    async buy() {
+      const how = window.MUGNUT_MOCK_STORE;
+      if (how === "cancel") return "cancelled"; if (how === "fail") return "failed"; if (how === "pending") return "pending";
+      try { localStorage.setItem(MOCK_KEY, "1"); } catch (e) {}
+      unlocked(); return "ok";
+    },
     async owned() { try { return localStorage.getItem(MOCK_KEY) === "1"; } catch (e) { return null; } },
-    async restore() { const has = await mock.owned(); if (has) remember(true); return !!has; },
+    async restore() { const has = await mock.owned(); if (has) unlocked(); return !!has; },
   };
 
   const back = () => (window.MUGNUT_MOCK_STORE ? mock : real);
   return {
     get paywall() { return NATIVE; },
     unlocked: () => !NATIVE || remembered(),
-    price: () => back().price(),
-    buy: () => back().buy(),
-    restore: () => back().restore(),
-    // A refund or a purchase made on another device shows up here. Only a definite answer changes anything.
-    async refresh() { if (!NATIVE) return; const has = await back().owned(); if (has === true) remember(true); else if (has === false) remember(false); },
+    price: () => serial(() => back().price()),
+    buy: () => serial(() => back().buy()),       // -> "ok" | "cancelled" | "pending" | "failed" | "unavailable"
+    restore: () => serial(() => back().restore()),
+    // A refund or a purchase made on another device shows up here. Only a definite answer changes anything, and
+    // never one that was asked before a purchase or restore went through.
+    refresh: () => serial(async () => {
+      if (!NATIVE) return;
+      const asked = generation, has = await back().owned();
+      if (asked !== generation) return;
+      if (has === true) remember(true); else if (has === false) remember(false);
+    }),
   };
 })();

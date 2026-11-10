@@ -55,7 +55,14 @@ Challenge links look like `https://edhar98.github.io/Mugnut/#c=…`. For a tap o
 The apps already listen for such links; iOS additionally needs the Associated Domains capability switched on in Xcode (`applinks:<host>`), which I will add once you pick A or B and have a developer account.
 
 ### 7. Test, then submit (yours to press)
-- Test purchases with an App Store sandbox tester and a Google Play licence tester before submitting.
+- Test purchases with an App Store sandbox tester and a Google Play licence tester before submitting. The checks that matter, none of which could be run here:
+  - buy, then force-quit and reopen: still unlocked;
+  - **Android: buy as a licence tester, wait 10 minutes, reopen: still unlocked** (Google refunds a purchase the app failed to acknowledge; for testers that happens within minutes);
+  - back out of the payment sheet: no error message;
+  - delete and reinstall, then "Restore purchases": unlocked;
+  - refund the test purchase: locked again at the next start;
+  - a photo challenge: the share sheet shows the photo and the link; the camera opens from "Take photo";
+  - the daily reminder arrives the next morning.
 - Submit for review in each console. Reviewers will ask how to test the purchase: say "the unlock is on the menu under any locked level".
 
 ### Also waiting on you

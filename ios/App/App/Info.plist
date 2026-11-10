@@ -59,8 +59,6 @@
 	<string>Take a photo of an object to make a challenge for a friend. The photo stays on your phone unless you share it.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose a photo of an object to make a challenge for a friend. The photo stays on your phone unless you share it.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Mugnut does not save photos to your library.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>CFBundleLocalizations</key>

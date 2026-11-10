@@ -27,17 +27,38 @@ function shell(opts = {}) {
         schedule: async o => { log("LocalNotifications", "schedule", o); return { notifications: o.notifications.map(n => ({ id: n.id })) }; },
         cancel: async o => { log("LocalNotifications", "cancel", o); },
       },
-      App: { addListener: (name, cb) => { log("App", "addListener", name); window.__open = url => cb({ url }); return Promise.resolve({ remove() {} }); }, getLaunchUrl: async () => (state.launch ? { url: state.launch } : undefined) },
+      App: { addListener: (name, cb) => { log("App", "addListener", name); if (name === "appUrlOpen") window.__open = url => cb({ url }); if (name === "backButton") window.__back = () => cb({ canGoBack: false }); return Promise.resolve({ remove() {} }); }, getLaunchUrl: async () => (state.launch ? { url: state.launch } : undefined), minimizeApp: async () => log("App", "minimizeApp") },
       NativePurchases: {
         isBillingSupported: async () => ({ isBillingSupported: !state.storeDown }),
         getProduct: async o => { log("NativePurchases", "getProduct", o); if (state.storeDown) throw new Error("offline"); return { product: { identifier: o.productIdentifier, priceString: state.price } }; },
-        purchaseProduct: async o => { log("NativePurchases", "purchaseProduct", o); if (state.buy === "cancel") throw new Error("User cancelled the purchase"); if (state.buy === "fail") throw new Error("Payment declined"); state.owned = true; localStorage.setItem("test:owned", "1"); return { transactionId: "t1", productIdentifier: o.productIdentifier }; },
+        purchaseProduct: async o => {
+          log("NativePurchases", "purchaseProduct", o);
+          const err = (message, code) => Object.assign(new Error(message), code ? { code } : {});
+          if (state.buy === "cancel") throw state.platform === "android" ? err("Purchase is not purchased", "USER_CANCELED") : err("User cancelled");
+          if (state.buy === "fail") throw err("Payment declined");
+          if (state.buy === "owned") { state.owned = true; throw err("Purchase is not purchased", "ITEM_ALREADY_OWNED"); }
+          if (state.buy === "ask") throw err("Transaction pending");
+          if (state.buy === "pending") { state.pending = true; return { transactionId: "t1", productIdentifier: o.productIdentifier, purchaseState: "2", purchaseToken: "tok1", isAcknowledged: false }; }
+          state.owned = true; localStorage.setItem("test:owned", "1");
+          return state.platform === "android" ? { transactionId: "t1", productIdentifier: o.productIdentifier, purchaseState: "1", purchaseToken: "tok1", isAcknowledged: false } : { transactionId: "t1", productIdentifier: o.productIdentifier };
+        },
+        acknowledgePurchase: async o => { log("NativePurchases", "acknowledgePurchase", o); state.acked = true; },
         restorePurchases: async () => { log("NativePurchases", "restorePurchases"); if (state.storeDown) throw new Error("offline"); },
-        getPurchases: async o => { log("NativePurchases", "getPurchases", o); if (state.storeDown) throw new Error("offline"); return { purchases: state.owned ? [{ transactionId: "t1", productIdentifier: "unlock_all" }] : [] }; },
+        getPurchases: async o => {
+          log("NativePurchases", "getPurchases", o);
+          const ownedWhenAsked = state.owned;
+          if (state.slow) await new Promise(r => setTimeout(r, state.slow)); // answers with what was true when asked
+          if (state.storeDown) throw new Error("offline");
+          const android = state.platform === "android";
+          const list = [];
+          if (ownedWhenAsked) list.push(android ? { transactionId: "t1", productIdentifier: "unlock_all", purchaseState: "1", purchaseToken: "tok1", isAcknowledged: !!state.acked } : { transactionId: "t1", productIdentifier: "unlock_all" });
+          if (state.pending) list.push({ transactionId: "t2", productIdentifier: "unlock_all", purchaseState: "2", purchaseToken: "tok2", isAcknowledged: false });
+          return { purchases: list };
+        },
       },
     };
     if (state.noStore) delete Plugins.NativePurchases;
-    window.Capacitor = { isNativePlatform: () => true, getPlatform: () => "ios", Plugins };
+    window.Capacitor = { isNativePlatform: () => true, getPlatform: () => state.platform || "ios", Plugins };
   }, { photo: PHOTO_URL, opts }];
 }
 const calls = (page, plugin, method) => page.evaluate(([p, m]) => window.__calls.filter(c => c.plugin === p && (!m || c.method === m)), [plugin, method]);
@@ -471,5 +492,131 @@ test.describe("the app build", () => {
     // the purchase plugin is not among this shell's plugins: the store reports itself unavailable instead of throwing
     expect(await page.evaluate(() => Store.buy())).toBe("unavailable");
     expect(await page.evaluate(() => Store.price())).toBeNull();
+  });
+});
+
+test.describe("what the stores really send (shapes taken from the plugin's native code)", () => {
+  test("Android: backing out is a cancellation, not a failure", async ({ page }) => {
+    await openApp(page, { platform: "android", buy: "cancel" });
+    await page.locator('#levelBtns .lvbtn[data-lv="4"]').click();
+    await page.locator("#buyBtn").click();
+    await expect(page.locator("#buyBtn")).toBeEnabled();
+    await expect(page.locator("#unlockNote")).toBeHidden();
+    expect(await page.evaluate(() => Store.unlocked())).toBe(false);
+  });
+
+  test("Android: a purchase is acknowledged before it counts, and again at start if that was missed", async ({ page }) => {
+    await openApp(page, { platform: "android" });
+    await page.locator('#levelBtns .lvbtn[data-lv="4"]').click();
+    await page.locator("#buyBtn").click();
+    await expect(page.locator("#homeNote")).toContainText("Unlocked");
+    expect((await calls(page, "NativePurchases", "acknowledgePurchase")).map(c => c.arg)).toEqual([{ purchaseToken: "tok1" }]);
+    // next launch: the store still shows it as unacknowledged (the first attempt was lost), so it is acknowledged again
+    await page.reload();
+    await expect(page.locator("#home")).toBeVisible();
+    await expect.poll(async () => (await calls(page, "NativePurchases", "acknowledgePurchase")).length).toBe(1);
+    await expect(page.locator('#levelBtns .lvbtn[data-lv="4"]')).not.toContainText("🔒");
+  });
+
+  test("iOS: nothing to acknowledge", async ({ page }) => {
+    await openApp(page);
+    await page.locator('#levelBtns .lvbtn[data-lv="4"]').click();
+    await page.locator("#buyBtn").click();
+    await expect(page.locator("#homeNote")).toContainText("Unlocked");
+    expect(await calls(page, "NativePurchases", "acknowledgePurchase")).toEqual([]);
+  });
+
+  test("a payment still waiting (cash, voucher, Ask to Buy) does not unlock, and says so", async ({ page }) => {
+    await openApp(page, { platform: "android", buy: "pending" });
+    await page.locator('#levelBtns .lvbtn[data-lv="4"]').click();
+    await page.locator("#buyBtn").click();
+    await expect(page.locator("#unlockNote")).toContainText("waiting for approval or payment");
+    expect(await page.evaluate(() => Store.unlocked())).toBe(false);
+    // the store lists the unpaid purchase at the next start: still locked
+    await page.addInitScript(() => { window.__shell.pending = true; });
+    await page.reload();
+    await expect(page.locator("#home")).toBeVisible();
+    await page.waitForTimeout(200);
+    await expect(page.locator('#levelBtns .lvbtn[data-lv="4"]')).toContainText("🔒");
+    // iOS Ask to Buy
+    await page.evaluate(() => { window.__shell.buy = "ask"; window.__shell.platform = "ios"; });
+    await page.locator('#levelBtns .lvbtn[data-lv="4"]').click();
+    await page.locator("#buyBtn").click();
+    await expect(page.locator("#unlockNote")).toContainText("waiting for approval or payment");
+  });
+
+  test("Android: tapping Unlock when the account already owns it just opens the game", async ({ page }) => {
+    await openApp(page, { platform: "android", buy: "owned", storeDown: true }); // the check at start could not reach the store
+    await expect(page.locator('#levelBtns .lvbtn[data-lv="4"]')).toContainText("🔒");
+    await page.evaluate(() => { window.__shell.storeDown = false; });
+    await page.locator('#levelBtns .lvbtn[data-lv="4"]').click();
+    await page.locator("#buyBtn").click();
+    await expect(page.locator("#homeNote")).toContainText("Unlocked");
+    await expect(page.locator('#levelBtns .lvbtn[data-lv="4"]')).not.toContainText("🔒");
+  });
+
+  test("a slow answer from the store at start cannot undo a purchase made meanwhile", async ({ page }) => {
+    await openApp(page, { platform: "android", slow: 1500 }); // the start-up question is still in the air
+    await page.locator('#levelBtns .lvbtn[data-lv="4"]').click();
+    await page.evaluate(() => { window.__shell.slow = 0; });
+    await page.locator("#buyBtn").click();
+    await expect(page.locator("#homeNote")).toContainText("Unlocked", { timeout: 10000 });
+    await page.waitForTimeout(1800); // the stale "owns nothing" answer has arrived by now
+    expect(await page.evaluate(() => [Store.unlocked(), localStorage.getItem("mugnut:unlock")])).toEqual([true, "1"]);
+    await page.locator('#levelBtns .lvbtn[data-lv="4"]').click();
+    await expect(page.locator("#lvChip")).toHaveText("Expert");
+  });
+
+  test("store calls never overlap (the Android plugin has one billing connection)", async ({ page }) => {
+    await page.addInitScript(() => { window.__active = 0; window.__maxActive = 0; });
+    await openApp(page, { platform: "android" });
+    await page.evaluate(() => {
+      const p = Capacitor.Plugins.NativePurchases;
+      for (const m of ["getProduct", "getPurchases", "purchaseProduct", "restorePurchases"]) { const f = p[m]; p[m] = async o => { window.__active++; window.__maxActive = Math.max(window.__maxActive, window.__active); await new Promise(r => setTimeout(r, 40)); try { return await f(o); } finally { window.__active--; } }; }
+    });
+    await page.evaluate(() => Promise.all([Store.refresh(), Store.price(), Store.restore(), Store.price(), Store.refresh()]));
+    expect(await page.evaluate(() => window.__maxActive)).toBe(1);
+  });
+
+  test("Android back button: back to the menu from a screen, and out of the way on the menu", async ({ page }) => {
+    await openApp(page, { platform: "android" });
+    await page.locator('#levelBtns .lvbtn[data-lv="1"]').click();
+    await expect(page.locator("#game")).toBeVisible();
+    await page.evaluate(() => window.__back());
+    await expect(page.locator("#home")).toBeVisible();
+    expect(await calls(page, "App", "minimizeApp")).toHaveLength(0);
+    await page.evaluate(() => window.__back());
+    expect(await calls(page, "App", "minimizeApp")).toHaveLength(1);
+  });
+});
+
+test.describe("the website can never turn into the app", () => {
+  test("on the real web address a Capacitor object changes nothing: no paywall, analytics still on", async ({ page, context }) => {
+    // the site opened inside some other app's shell, which injects its own bridge
+    await context.route("https://edhar98.github.io/**", route => {
+      const rel = new URL(route.request().url()).pathname.replace(/^\/Mugnut\//, "") || "index.html", file = path.join(path.resolve(__dirname, ".."), rel);
+      if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) return route.fulfill({ status: 404, body: "" });
+      route.fulfill({ status: 200, contentType: { ".html": "text/html", ".js": "text/javascript", ".png": "image/png" }[path.extname(file)] || "application/octet-stream", body: fs.readFileSync(file) });
+    });
+    await page.addInitScript(...shell());
+    await page.goto("https://edhar98.github.io/Mugnut/");
+    await expect(page.locator("#home")).toBeVisible();
+    expect(await page.evaluate(() => [NATIVE, Store.paywall, isLocked()])).toEqual([false, false, false]);
+    await expect(page.locator("#levelBtns")).not.toContainText("🔒");
+    await expect(page.locator("#remindRow")).toBeHidden();
+    expect((await page.evaluate(() => window.__hits)).length).toBe(1); // the web page view is still counted
+  });
+
+  test("if native.js fails to load, the page says so and offers a reload", async ({ page }) => {
+    await page.route("**/native.js", r => r.abort());
+    await page.goto("./");
+    await expect(page.getByText("did not finish loading")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Reload" })).toBeVisible();
+    await expect(page.locator("#journeyBtn")).toHaveCount(0);
+  });
+
+  test("inside the app the counter is off even if the page were served from the live address", async ({ page }) => {
+    await openApp(page);
+    expect(await page.evaluate(() => { const before = window.__hits.length; ANALYTICS_HOSTS.push(location.hostname); track("/"); track("round-start-journey"); return window.__hits.length - before; })).toBe(0);
   });
 });
