@@ -6,6 +6,8 @@ Updated: 2026-11-10
 
 ### Phase 0 — Setup
 - Independent review of `daily-mode`: changes requested, fixed, then approved.
+- Merged to `main` as [edhar98/Mugnut#1](https://github.com/edhar98/Mugnut/pull/1) (merge commit `fc1fce4`); the live site was checked afterwards by running the whole suite against it: 54 passed.
+- `MUGNUT_URL=<url> npx playwright test` runs the suite against a deployed copy (branch `live-check-config`, not merged yet: goes in with the first Phase 1 pull request after review).
 - Git repository connected to `edhar98/Mugnut`; daily mode, result sharing and Open Graph tags committed on `daily-mode`.
 - `package.json` (dev dependencies only: Playwright, http-server) and `.gitignore` (tooling output, secrets, signing material).
 - Playwright smoke suite in `tests/`, run at two phone profiles (Pixel 7 / Chromium, iPhone 14 / WebKit): 27 tests each (54 total), also green with the runner in UTC and US Pacific time.
