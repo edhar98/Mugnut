@@ -1,0 +1,30 @@
+# Mugnut — progress
+
+Updated: 2026-11-10
+
+## Done
+
+### Phase 0 — Setup
+- Git repository connected to `edhar98/Mugnut`; daily mode, result sharing and Open Graph tags committed on `daily-mode`.
+- `package.json` (dev dependencies only: Playwright, http-server) and `.gitignore` (tooling output, secrets, signing material).
+- Playwright smoke suite in `tests/`, run at two phone profiles (Pixel 7 / Chromium, iPhone 14 / WebKit): 22 tests each.
+  - `data.spec.js`: `OBJECTS` integrity (100 objects, 25 per level, genus 0–5, unique names, every drawing is well-formed SVG), daily object defined for every day.
+  - `game.spec.js`: home, assets, full Easy round, Journey losing 3 lives, flawless Journey, quit, opening `index.html` from the file system.
+  - `daily.spec.js`: play, lock, streak across days, same object for everyone, share text does not reveal the answer.
+  - `friends.spec.js`: create a challenge with a fixture photo, open the link on a second phone, answer, open the reply on the first; pasted links; hostile and broken links.
+- `tools/render-object.js` renders any object's drawing to PNG for visual checks.
+- Bugs found by the suite and fixed:
+  - **Challenge links created in Safari opened as "broken" for the friend.** Safari cannot encode WebP, no JPEG preview fits a 1,000-character caption, so the link carried no preview and the reader rejected it. A link without a preview now opens with the "photo is in your chat" placeholder.
+  - A challenge link with a non-numeric answer key was stored and crashed on reveal; it is now rejected as broken.
+  - "Plus-shaped pipe" drew stray lines across its joint (a duplicate `stroke` attribute that was also invalid SVG).
+
+## In progress
+- Phase 1 — validation features (analytics hook, daily archive and countdown, Open Graph image, automatic cache version, photos in IndexedDB).
+
+## Blocked on the human
+- See `HUMAN_TODO.md`.
+
+## Backlog notes
+- Challenges created in Safari travel without an in-link preview (JPEG headers alone exceed the caption budget). The attached photo still goes through the share sheet. Native share in Phase 3 removes the limit; a smaller hand-rolled preview format would fix it on the web.
+- `og:image` currently points at the 512 px icon; a 1200×630 image is planned in Phase 1.
+- The home text says "100 objects"; it must follow the object count when content grows in Phase 2.

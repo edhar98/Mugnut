@@ -45,3 +45,15 @@ Challenge links are short: the share sheet attaches the real photo, and the text
 ## Updating
 
 Change the files and upload them again. If players still see the old version, bump `CACHE = "mugnut-v1"` in `sw.js` to `v2`. Phones then fetch the new version on their next visit.
+
+## Development
+
+The game needs no build: edit `index.html` and reload. The tooling below is only for tests.
+
+```
+npm install
+npx playwright install chromium webkit
+npm test
+```
+
+The tests run the real page at phone size in Chromium and WebKit. `node tools/render-object.js out/ "Coffee mug"` renders a drawing to PNG.
