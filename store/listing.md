@@ -13,7 +13,8 @@ Paste these into App Store Connect and Google Play Console. Character limits are
 - **Age rating:** 4+ / Everyone (no violence, no user-generated content shown to others inside the app, no web browsing, no gambling)
 - **App Store privacy label:** "Data Not Collected". **Google Play data safety:** no data collected, no data shared.
 - **Icon:** `store/icon-1024.png`. **Google Play feature graphic:** `store/feature-1024x500.png`.
-- **Screenshots:** `node tools/make-store-shots.js` writes them to `store/screens/` (iPhone 6.9", iPad 13", Android phone; six per language).
+- **Screenshots:** `node tools/make-store-shots.js` writes them to `store/screens/` (iPhone 6.9", iPad 13", Android phone; six per language). They are taken from the game running in a browser at each device's size, not from real devices, and the folder is not committed: run the script to make them.
+- **Status:** nothing has been submitted. The Armenian and Russian text below has not been checked by a native speaker.
 
 ## English
 

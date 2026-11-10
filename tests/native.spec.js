@@ -6,6 +6,10 @@ const path = require("path");
 const AxeBuilder = require("@axe-core/playwright").default;
 const { test, expect, watchErrors, stubSharing, lastCopied, newPhone, answerCurrent } = require("./helpers");
 
+// The app shell is simulated on the local test server. On a deployed copy the page (rightly) refuses to act as the
+// app, so these tests have nothing to check there.
+test.skip(() => !!process.env.MUGNUT_URL, "the simulated app shell only exists on the local test server");
+
 const PHOTO = path.join(__dirname, "fixtures", "photo.jpg");
 const PHOTO_URL = "data:image/jpeg;base64," + fs.readFileSync(PHOTO).toString("base64");
 
