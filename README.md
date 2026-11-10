@@ -40,7 +40,7 @@ The answer is scrambled inside the link, so it isn't visible at a glance. A dete
 
 Your challenges, answers and daily streak are saved on your own phone (browser storage). Clearing the browser data or switching phones starts fresh. If a link was opened in a different browser than the installed app, paste it under **Got a link on another device?** on the challenges screen.
 
-Challenge links carry a compressed copy of the photo (WebP where the phone supports it), about 12,000 characters. That's fine for WhatsApp, iMessage, Signal and e-mail. Telegram cuts messages at 4,096 characters, so the share screen also offers a **short link** with a smaller photo. If the full photo was attached in the chat, your friend can tap *Use it for full quality*. Your own challenges are always shown in full quality on your phone.
+Challenge links are short (about 1,500 characters): they carry the challenge and a small preview of the photo, and the share sheet attaches the real photo to the message. Your friend can tap *See it sharp* to view the attached photo in the app. If you can't attach the photo, the share screen also offers a long link (about 12,000 characters) with a sharp photo inside. Your own challenges are always shown in full quality on your phone.
 
 ## Updating
 

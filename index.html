@@ -224,7 +224,7 @@
   <div class="stack" style="margin-top:14px">
     <button class="btn" id="shShare">Share…</button>
     <button class="btn ghost" id="shCopy">Copy link</button>
-    <button class="link" id="shShort" style="justify-self:center">Telegram cuts the message? Send a short link</button>
+    <button class="link" id="shShort" style="justify-self:center;font-size:14px">Can't attach the photo? Send a long link with the photo inside</button>
   </div>
   <div class="err" id="shErr" style="color:var(--muted)"></div>
 </section>
@@ -236,8 +236,8 @@
     <div class="pic"><img id="plImg" alt=""></div>
     <div class="meta"><span id="plFrom"></span><span></span></div>
     <div class="title" id="plName"></div>
-    <label class="link" id="plFullLbl" style="display:inline-block;position:relative;overflow:hidden;font-size:14px">Got the photo in the chat too? Use it for full quality
-      <input type="file" accept="image/*" id="plFullIn" style="position:absolute;inset:0;opacity:0"></label>
+    <label class="filebtn" id="plFullLbl" style="margin-top:10px;padding:12px 8px;font-size:15px">📷&nbsp; See it sharp: pick the photo from the chat
+      <input type="file" accept="image/*" id="plFullIn"></label>
   </div>
   <div class="q">What is it, topologically?</div>
   <div class="opts" id="plOpts"></div>
@@ -577,8 +577,8 @@ document.querySelectorAll("[data-home]").forEach(b=>b.onclick=renderHome);
 // Challenge link:  <app>#c=<base64url(JSON)>.<base64url(webp/jpeg photo)>
 // Answer link:     <app>#r=<base64url(JSON)>
 const APP_URL = location.origin + location.pathname;
-const PHOTO_BUDGET = 12000;  // photo characters in a normal link (fine for WhatsApp, iMessage, Signal, e-mail)
-const SHORT_BUDGET = 3000;   // "short link" photo budget: whole link stays under Telegram's 4096-character limit
+const PHOTO_BUDGET = 12000;  // optional long link with a sharp photo inside (when the photo can't be attached)
+const SHORT_BUDGET = 1300;   // default link: small preview only — the real photo travels as a chat attachment
 const WEBP_OK = (()=>{ try{ const c=document.createElement("canvas"); c.width=c.height=2; return c.toDataURL("image/webp").startsWith("data:image/webp"); }catch(e){ return false; } })();
 const imgSrc = c => c.full || `data:${c.mime||"image/jpeg"};base64,${c.thumb}`;
 
@@ -743,14 +743,33 @@ function drawScaled(img, max){
   const cx = cv.getContext("2d"); cx.fillStyle="#fff"; cx.fillRect(0,0,cv.width,cv.height); cx.drawImage(img,0,0,cv.width,cv.height);
   return cv;
 }
+function stripWebpMeta(b64){
+  try{
+    const bin = atob(b64); const u = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i);
+    const tag = (o)=>String.fromCharCode(u[o],u[o+1],u[o+2],u[o+3]);
+    if(tag(0)!=="RIFF" || tag(8)!=="WEBP") return b64;
+    const keep=[]; let o=12;
+    while(o+8<=u.length){
+      const t=tag(o), size=u[o+4]|(u[o+5]<<8)|(u[o+6]<<16)|(u[o+7]<<24), end=o+8+size+(size&1);
+      if(t!=="ICCP" && t!=="EXIF" && t!=="XMP ") keep.push(u.slice(o,Math.min(end,u.length)));
+      o=end;
+    }
+    keep.forEach(ch=>{ if(String.fromCharCode(ch[0],ch[1],ch[2],ch[3])==="VP8X") ch[8] &= ~(0x20|0x08|0x04); });
+    const total = 4 + keep.reduce((n,c)=>n+c.length,0);
+    const out = new Uint8Array(8+total); out.set([82,73,70,70]); out[4]=total&255; out[5]=(total>>8)&255; out[6]=(total>>16)&255; out[7]=(total>>24)&255;
+    out.set([87,69,66,80],8); let p=12; keep.forEach(c=>{ out.set(c,p); p+=c.length; });
+    let s2=""; for(let i=0;i<out.length;i+=0x8000) s2+=String.fromCharCode.apply(null, out.subarray(i,i+0x8000));
+    return btoa(s2);
+  }catch(e){ return b64; }
+}
 // biggest, sharpest version of the photo that fits in `budget` characters
 function encodeFit(img, budget){
   const type = WEBP_OK ? "image/webp" : "image/jpeg";
-  const sizes = [800,720,640,560,480,420,360,320,280,240,200,160,120];
+  const sizes = [800,720,640,560,480,420,360,320,280,240,200,160,140,120,100,80];
   const qs = type==="image/webp" ? [0.75,0.62,0.5,0.4,0.32] : [0.72,0.6,0.5,0.42,0.35];
   for(const s of sizes){
     const cv = drawScaled(img, s);
-    for(const q of qs){ const b = cv.toDataURL(type, q).split(",")[1]; if(b.length <= budget) return {thumb:b, mime:type}; }
+    for(const q of qs){ let b = cv.toDataURL(type, q).split(",")[1]; if(type==="image/webp") b = stripWebpMeta(b); if(b.length <= budget) return {thumb:b, mime:type}; }
   }
   return {thumb:drawScaled(img,100).toDataURL("image/jpeg",0.3).split(",")[1], mime:"image/jpeg"};
 }
@@ -795,15 +814,16 @@ async function openShare(c, photoBlob=null){
   if(!c.short){   // older challenges: make the Telegram-size version on the fly
     try{ c.short = encodeFit(await loadImg(imgSrc(c)), SHORT_BUDGET); }catch(e){ c.short = {thumb:c.thumb, mime:c.mime}; }
   }
-  const link = challengeLink(c);
+  if(!photoBlob && c.full){ try{ photoBlob = await (await fetch(c.full)).blob(); }catch(e){} }
+  const link = challengeLink(c, true);
   shareCtx = {
-    urlShort: challengeLink(c, true),
+    urlLong: challengeLink(c, false),
     title:`Mugnut challenge: ${c.name}`,
     text:`${c.from} challenges you: what is “${c.name}” topologically? 🍩`,
     url:link, file: photoBlob ? new File([photoBlob], "mugnut-challenge.jpg", {type:"image/jpeg"}) : null
   };
   $("shTitle").textContent = "Send it to a friend";
-  $("shText").textContent = "Share the link in any chat. Your friend opens it, guesses, and can send their answer back to you.";
+  $("shText").textContent = "Your photo is attached to a short link. Your friend opens the link, guesses, and can send their answer back to you.";
   $("shShort").classList.remove("hidden");
   const card = $("shCard"); card.innerHTML="";
   card.className = "card ch";
@@ -849,11 +869,11 @@ async function copyLink(){
 }
 $("shCopy").onclick = copyLink;
 $("shShort").onclick = async ()=>{
-  const txt = shareCtx.text + "\n" + shareCtx.urlShort;
+  const txt = shareCtx.text + "\n" + shareCtx.urlLong;
   try{
-    if(navigator.share){ await navigator.share({title:shareCtx.title, text:shareCtx.text, url:shareCtx.urlShort}); $("shErr").textContent = "Shared!"; return; }
+    if(navigator.share){ await navigator.share({title:shareCtx.title, text:shareCtx.text, url:shareCtx.urlLong}); $("shErr").textContent = "Shared!"; return; }
   }catch(e){ if(e && e.name==="AbortError") return; }
-  try{ await navigator.clipboard.writeText(txt); $("shErr").textContent = "Short link copied — the photo in it is smaller."; }
+  try{ await navigator.clipboard.writeText(txt); $("shErr").textContent = "Long link copied — the sharp photo is inside it."; }
   catch(e){ const ta = el("textarea",{style:"margin-top:8px"}); ta.value = txt; $("shErr").textContent = "Copy this and send it:"; $("shErr").append(ta); ta.select(); }
 };
 
