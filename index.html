@@ -6,6 +6,12 @@
 <title>Mugnut — is it a donut?</title>
 <meta name="theme-color" content="#f6f2e9">
 <meta name="description" content="Guess the topology of everyday objects — and challenge your friends.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Mugnut — is it a donut?">
+<meta property="og:description" content="To a topologist, a coffee mug and a donut are the same thing. Guess the topology of everyday objects.">
+<meta property="og:url" content="https://edhar98.github.io/Mugnut/">
+<meta property="og:image" content="https://edhar98.github.io/Mugnut/icons/icon-512.png">
+<meta name="twitter:card" content="summary">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -108,6 +114,10 @@
   <h1>Mugnut</h1>
   <p class="muted" style="margin:0 0 18px">To a topologist, a coffee mug and a donut are the same thing. 100 objects, 4 levels — can you see the world that way?</p>
   <div class="stack">
+    <button class="mode" id="dailyBtn">
+      <div class="row"><h3>Today's object</h3><span class="tag" id="dTag"></span></div>
+      <p>One object a day, the same for everyone. Guess it, then dare a friend.</p>
+    </button>
     <button class="mode" id="journeyBtn">
       <div class="row"><h3>Journey</h3><span class="tag" id="jBest"></span></div>
       <p>Start easy and climb to expert. 24 objects, 3 lives.</p>
@@ -492,6 +502,8 @@ const lvChipHTML = lv => `<span class="chip" style="background:${LEVELS[lv].c}">
 function renderHome(){
   const jb = store.get("best-journey");
   $("jBest").textContent = jb ? `Best ${jb}/24` : "";
+  const dd = store.get("daily");
+  $("dTag").textContent = dd && dd.day===localDay() ? `${dd.ok?"✓":"✗"} Done · streak ${dd.streak}` : `#${dailyNum()}`;
   $("levelBtns").innerHTML = [1,2,3,4].map(lv=>{
     const b = store.get("best-"+lv);
     return `<button class="lvbtn" data-lv="${lv}"><b><span class="dot" style="background:${LEVELS[lv].c}"></span>${LEVELS[lv].n}</b><small>${b!=null?`Best ${b}/10`:LEVELS[lv].t}</small></button>`;
@@ -506,6 +518,23 @@ function startJourney(){
   const deck = [1,2,3,4].flatMap(lv=>shuffle(OBJECTS.filter(o=>o.lv===lv)).slice(0,6));
   G = {mode:"journey", deck, idx:0, score:0, lives:3, missed:[], lastLv:0};
   nextQuestion();
+}
+// today's object: the same for everyone on the same calendar day (cycles through all 100 objects)
+const DAY0 = new Date(2026, 10, 10);
+function dailyNum(){ const d=new Date(); return Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - DAY0)/864e5) + 1; }
+function dailyObject(){ const n=OBJECTS.length; return OBJECTS[(((dailyNum()*37 + 11) % n) + n) % n]; }
+function startDaily(){
+  const dd = store.get("daily"), done = dd && dd.day===localDay();
+  G = {mode:"daily", deck:[dailyObject()], idx:0, score:0, lives:null, missed:[], lastLv:0, replay:done};
+  show("game"); renderQ();
+  if(done) answer(dd.g);
+}
+function shareDaily(){
+  const dd = store.get("daily") || {};
+  const text = `Mugnut #${dailyNum()} 🍩 ${dd.ok ? "✅ Got it" : "❌ It fooled me"}${dd.streak>1 ? ` · ${dd.streak}-day streak` : ""}\nIs today's object a donut?`;
+  const done = m => { $("verdict").textContent = m; };
+  if(navigator.share){ navigator.share({text, url:APP_URL}).then(()=>done("Shared!")).catch(()=>{}); return; }
+  if(navigator.clipboard) navigator.clipboard.writeText(text + "\n" + APP_URL).then(()=>done("Result copied — paste it into any chat."), ()=>done("Couldn't copy on this device."));
 }
 function startLevel(lv){
   G = {mode:"level", lv, deck:shuffle(OBJECTS.filter(o=>o.lv===lv)).slice(0,10), idx:0, score:0, lives:null, missed:[], lastLv:lv};
@@ -539,6 +568,10 @@ function answer(g){
   const o = G.deck[G.idx], ok = g===o.g;
   $("opts").querySelectorAll(".opt").forEach(b=>{ const bg=+b.dataset.g; b.disabled=true; if(bg===o.g) b.classList.add("correct"); else if(bg===g) b.classList.add("wrong"); });
   if(ok) G.score++; else { G.missed.push({o,g}); if(G.lives!=null) G.lives--; }
+  if(G.mode==="daily" && !G.replay){
+    const prev = store.get("daily"), yest = localDay(Date.now()-864e5);
+    store.set("daily", {day:localDay(), g, ok, streak: prev && prev.day===yest ? (prev.streak||0)+1 : 1});
+  }
   $("sc").textContent = G.score;
   if(G.lives!=null) $("hearts").textContent = "♥".repeat(G.lives) + "♡".repeat(3-G.lives);
   $("fbTitle").textContent = ok ? `Correct — ${shapeName(o.g)}!` : `Not quite — it's ${o.g===5?"":"a "}${shapeName(o.g)}.`;
@@ -552,7 +585,13 @@ $("nextBtn").onclick = ()=>{ G.idx++; nextQuestion(); };
 function finish(){
   const total = G.deck.length;
   $("final").textContent = `${G.score}/${total}`;
-  if(G.mode==="journey"){
+  $("againBtn").textContent = G.mode==="daily" ? "Share result" : "Play again";
+  if(G.mode==="daily"){
+    const dd = store.get("daily") || {streak:1};
+    $("endTitle").textContent = `Today's object #${dailyNum()}`;
+    $("final").textContent = G.score ? "✓" : "✗";
+    $("verdict").textContent = `Day streak: ${dd.streak}. A new object arrives tomorrow.`;
+  } else if(G.mode==="journey"){
     const reached = G.deck[Math.min(G.idx, total-1)].lv;
     $("endTitle").textContent = G.lives===0 ? "Journey over" : "Journey complete!";
     $("verdict").textContent = G.lives===0 ? `You made it to ${LEVELS[reached].n}.` : (G.score===total ? "Flawless — a true topologist." : "You made it through all four levels.");
@@ -568,7 +607,8 @@ function finish(){
   G.missed.forEach(m=>$("review").append(el("li",{}, el("span",{text: m.o.name + (m.o.sub?` (${m.o.sub})`:"")}), el("em",{html:`${SHAPES[m.o.g]}<br><small>you said ${SHAPES[m.g].toLowerCase()}</small>`}))));
   show("end");
 }
-$("againBtn").onclick = ()=> G.mode==="journey" ? startJourney() : startLevel(G.lv);
+$("againBtn").onclick = ()=> G.mode==="daily" ? shareDaily() : G.mode==="journey" ? startJourney() : startLevel(G.lv);
+$("dailyBtn").onclick = startDaily;
 $("homeBtn").onclick = renderHome;
 $("quitBtn").onclick = renderHome;
 $("journeyBtn").onclick = startJourney;
