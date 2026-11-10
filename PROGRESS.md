@@ -55,7 +55,7 @@ Suite: 231 passed, 7 skipped, on Pixel 7 / Chromium and iPhone 14 / WebKit.
 - **Store assets**: `store/icon-1024.png`, `store/feature-1024x500.png`, `store/listing.md` (English, Armenian, Russian), screenshots for iPhone 6.9", iPad 13" and Android phones in three languages via `tools/make-store-shots.js` (taken from the game code in a browser at device size, not from devices), and `privacy.html`.
 - Gate 3 checklist (tools to install, accounts, products, signing, app links, submission) is in `HUMAN_TODO.md`.
 
-Suite: 281 passed, 7 skipped.
+Suite: 303 passed, 7 skipped. Independent review: changes requested (web load guard; Android purchase states, acknowledgement and a relock race found by reading the plugin's source), fixed, approved.
 
 ## In progress
 - Waiting at Gate 3: the build tools must be installed before the apps can be compiled, run and corrected.
@@ -64,6 +64,8 @@ Suite: 281 passed, 7 skipped.
 - Install Xcode and Android Studio; create the developer accounts; decide the app id and the app-links route. See `HUMAN_TODO.md`.
 
 ## Backlog notes
+- **Before any store build:** give every store call except the purchase itself a timeout (`native.js`, the `serial` queue). Today a store request that never answers leaves the Unlock and Restore buttons waiting until the app is restarted. Suggested: price 10 s, owned-check 15 s, restore 20 s, acknowledge 10 s.
+- Phase 3 review notes still open: a "waiting for approval" purchase is only picked up at the next start; nothing but a console line stops a mock-store build being submitted (always run `npm run cap:sync` for store builds).
 - Service worker: fetches are network-first with no timeout, so on a connection that stalls (rather than fails) the menu can sit without working buttons until the browser gives up. Add one timeout covering the page and its scripts together.
 - A player whose browser is set to Armenian or Russian waits for the language file (about 70 KB) before the first screen appears.
 - Screen readers may not announce the answer reliably (the status region is filled while hidden, then focus moves); use a separate always-present live region.
