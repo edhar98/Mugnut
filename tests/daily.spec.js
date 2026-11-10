@@ -2,7 +2,7 @@
 const { test, expect, watchErrors, stubSharing, lastCopied, answerCurrent } = require("./helpers");
 
 // Wall-clock time in the browser's pinned zone (Asia/Yerevan, UTC+4, no DST), whatever zone the test runner is in.
-const at = (y, m, d, h = 10, min = 0) => new Date(Date.UTC(y, m - 1, d, h - 4, min, 0));
+const at = (y, m, d, h = 10, min = 0, sec = 0) => new Date(Date.UTC(y, m - 1, d, h - 4, min, sec));
 const stored = page => page.evaluate(() => JSON.parse(localStorage.getItem("mugnut:daily")));
 
 test.beforeEach(async ({ context }) => { await stubSharing(context); });
@@ -183,5 +183,141 @@ test.describe("where the clocks change", () => {
     await expect(page.locator("#dTag")).toHaveText("#" + (n + 1));
     await play(page);
     expect(await stored(page)).toMatchObject({ day: "2027-10-31", num: n + 1, streak: 2 });
+  });
+});
+
+test.describe("archive and countdown", () => {
+  const log = page => page.evaluate(() => JSON.parse(localStorage.getItem("mugnut:daily-log")));
+
+  test("which object belongs to which day never changes", async ({ page }) => {
+    // Pinned on purpose: if this fails, players' past answers no longer match their days. Add objects at the end of OBJECTS only.
+    await page.goto("./");
+    const got = await page.evaluate(() => [1, 2, 3, 4, 5, 6, 7, 100, 101, 365].map(n => [n, dailyObject(n).name]));
+    expect(got).toEqual([[1, "Letter A"], [2, "T-shirt"], [3, "Closed book"], [4, "Vase"], [5, "Möbius strip"], [6, "Fork"], [7, "Jigsaw piece"], [100, "Rubber band"], [101, "Letter A"], [365, "Brick"]]);
+    // appending objects must not move the rotation
+    const same = await page.evaluate(() => { const before = dailyObject(42).name; OBJECTS.push({ ...OBJECTS[0], name: "Extra" }); return before === dailyObject(42).name; });
+    expect(same).toBe(true);
+  });
+
+  test("on day 1 there is no archive link; later it lists every earlier day, newest first", async ({ page }) => {
+    await page.clock.setFixedTime(at(2026, 11, 10));
+    await page.goto("./");
+    await expect(page.locator("#dTag")).toHaveText("#1");
+    await expect(page.locator("#archiveRow")).toBeHidden();
+
+    await page.clock.setFixedTime(at(2026, 11, 14));
+    await page.reload();
+    await expect(page.locator("#archiveBtn")).toBeVisible();
+    await page.locator("#archiveBtn").click();
+    await expect(page.locator("#archive")).toBeVisible();
+    await expect(page.locator("#arList .arrow b")).toHaveText(["#4 · Nov 13", "#3 · Nov 12", "#2 · Nov 11", "#1 · Nov 10"]);
+    await expect(page.locator("#arList .arrow small")).toHaveText(Array(4).fill("Not played yet")); // names would give the objects away
+    await expect(page.locator("#arSummary")).toContainText("0 of 4 played");
+  });
+
+  test("a past object can be played once; it is recorded but never touches today or the streak", async ({ page }) => {
+    const errors = watchErrors(page);
+    await page.clock.setFixedTime(at(2026, 11, 13));
+    await page.goto("./");
+    // play today (#4) first: streak 1
+    await page.locator("#dailyBtn").click();
+    await answerCurrent(page, true);
+    await page.locator("#nextBtn").click();
+    await page.locator("#homeBtn").click();
+    const today = await stored(page);
+
+    await page.locator("#archiveBtn").click();
+    await page.locator('#arList .arrow[data-num="2"]').click();
+    await expect(page.locator("#name")).toHaveText("T-shirt");
+    await expect(page.locator("#tot")).toHaveText("1");
+    const picked = await answerCurrent(page, false);
+    await page.locator("#nextBtn").click();
+    await expect(page.locator("#endTitle")).toHaveText("Object #2 · Nov 11");
+    await expect(page.locator("#final")).toHaveText("✗");
+    await expect(page.locator("#verdict")).toContainText("From the archive");
+    await expect(page.locator("#againBtn")).toHaveText("Back to past objects");
+    expect(await stored(page)).toEqual(today);
+    expect((await log(page))["2"]).toEqual({ g: picked, ok: false });
+
+    await page.locator("#againBtn").click();
+    await expect(page.locator("#archive")).toBeVisible();
+    const row = page.locator('#arList .arrow[data-num="2"]');
+    await expect(row.locator("small")).toHaveText("T-shirt (with a hole in it)");
+    await expect(row.locator(".st")).toHaveText("✗");
+    await expect(page.locator("#arSummary")).toContainText("1 of 3 played, 0 correct");
+
+    // locked: opening it again shows the recorded answer and cannot change it
+    await row.click();
+    await expect(page.locator("#opts .opt:disabled")).toHaveCount(6);
+    await expect(page.locator(`#opts .opt[data-g="${picked}"]`)).toHaveClass(/wrong/);
+    await page.reload();
+    expect((await log(page))["2"]).toEqual({ g: picked, ok: false });
+    await expect(page.locator("#dTag")).toHaveText("✓ Done · streak 1");
+    expect(errors).toEqual([]);
+  });
+
+  test("today's answer shows up in the archive the next day, including one saved before the archive existed", async ({ page }) => {
+    await page.clock.setFixedTime(at(2026, 11, 13));
+    await page.goto("./");
+    // a record in the shape the previous version stored
+    await page.evaluate(() => { localStorage.setItem("mugnut:daily", JSON.stringify({ day: "2026-11-12", g: 0, ok: true, streak: 1 })); localStorage.removeItem("mugnut:daily-log"); });
+    await page.reload();
+    await page.locator("#dailyBtn").click();
+    await answerCurrent(page, true);
+    expect((await stored(page)).streak).toBe(2);
+
+    await page.clock.setFixedTime(at(2026, 11, 14));
+    await page.reload();
+    await page.locator("#archiveBtn").click();
+    await expect(page.locator('#arList .arrow[data-num="4"] small')).toHaveText("Vase");
+    await expect(page.locator('#arList .arrow[data-num="4"] .st')).toHaveText("✓");
+    await expect(page.locator('#arList .arrow[data-num="3"] small')).toHaveText("Closed book");
+    await expect(page.locator('#arList .arrow[data-num="3"] .st')).toHaveText("✓");
+    await expect(page.locator("#arSummary")).toContainText("2 of 4 played, 2 correct");
+  });
+
+  test("a damaged archive record is ignored instead of breaking the game", async ({ page }) => {
+    const errors = watchErrors(page);
+    await page.clock.setFixedTime(at(2026, 11, 14));
+    await page.goto("./");
+    for (const bad of ['"oops"', "[1,2]", '{"2":{"g":99,"ok":true},"3":null,"__proto__":{"g":1}}', "{broken"]) {
+      await page.evaluate(v => localStorage.setItem("mugnut:daily-log", v), bad);
+      await page.reload();
+      await page.locator("#archiveBtn").click();
+      await expect(page.locator("#arList .arrow")).toHaveCount(4);
+      await expect(page.locator("#arSummary")).toContainText("0 of 4 played");
+      await page.locator('#arList .arrow[data-num="2"]').click();
+      await expect(page.locator("#opts .opt:disabled")).toHaveCount(0);
+      await page.locator("#quitBtn").click();
+    }
+    expect(errors).toEqual([]);
+  });
+
+  test("after playing, the menu and the result screen count down to the next object", async ({ page }) => {
+    await page.clock.setFixedTime(at(2026, 11, 12, 18, 30));
+    await page.goto("./");
+    await expect(page.locator("#dNext")).toHaveText("");
+    await page.locator("#dailyBtn").click();
+    await answerCurrent(page, true);
+    await page.locator("#nextBtn").click();
+    await expect(page.locator("#verdict")).toHaveText("Day streak: 1. Next object in 5h 30m.");
+    await page.clock.setFixedTime(at(2026, 11, 12, 23, 58, 0));
+    await expect(page.locator("#verdict")).toHaveText("Day streak: 1. Next object in 2m 00s.");
+    await page.locator("#homeBtn").click();
+    await expect(page.locator("#dNext")).toHaveText("Next object in 2m 00s.");
+
+    // at midnight the open menu switches to the new object by itself
+    await page.clock.setFixedTime(at(2026, 11, 13, 0, 0, 1));
+    await expect(page.locator("#dTag")).toHaveText("#4");
+    await expect(page.locator("#dNext")).toHaveText("");
+  });
+
+  test("the archive fits a narrow phone", async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 740 });
+    await page.clock.setFixedTime(at(2026, 12, 30));
+    await page.goto("./");
+    await page.locator("#archiveBtn").click();
+    await expect(page.locator("#arList .arrow")).toHaveCount(50);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
   });
 });
