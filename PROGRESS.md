@@ -46,6 +46,8 @@ Merged as [#7](https://github.com/edhar98/Mugnut/pull/7) after independent revie
 Suite: 231 passed, 7 skipped, on Pixel 7 / Chromium and iPhone 14 / WebKit.
 
 ### Phase 3 — Native apps
+Merged as [#8](https://github.com/edhar98/Mugnut/pull/8); the web version was verified on the live site afterwards (229 passed, 9 skipped, web tests only).
+
 **Not compiled or run yet: this Mac has no Xcode, Java or Android SDK.** Everything below was verified in the browser against a stand-in for the app shell, and once against Capacitor's real core script; none of it has touched StoreKit, Play Billing or a real device.
 
 - **Capacitor 8** projects in `ios/` (Swift packages, no CocoaPods) and `android/`, app id `app.mugnut.game`, portrait only, icons and launch images generated from the game's icon by `tools/make-app-icons.js`.
