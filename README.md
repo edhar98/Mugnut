@@ -44,7 +44,13 @@ Challenge links are short: the share sheet attaches the real photo, and the text
 
 ## Updating
 
-Change the files and upload them again. If players still see the old version, bump `CACHE = "mugnut-v1"` in `sw.js` to `v2`. Phones then fetch the new version on their next visit.
+Change the files and commit. The offline cache is versioned by a stamp in `sw.js` that is a hash of the shipped files; `npm run stamp` rewrites it and the tests fail if it is stale. To have it happen on every commit, run this once after cloning:
+
+```
+git config core.hooksPath .githooks
+```
+
+Phones fetch the new version on their next visit.
 
 ## Development
 

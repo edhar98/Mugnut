@@ -2,6 +2,8 @@
 const { defineConfig, devices } = require("@playwright/test");
 
 const PORT = 4173;
+// MUGNUT_URL=https://edhar98.github.io/Mugnut/ npx playwright test   runs the same suite against a deployed copy.
+const LIVE = process.env.MUGNUT_URL;
 
 module.exports = defineConfig({
   testDir: "tests",
@@ -10,7 +12,7 @@ module.exports = defineConfig({
   retries: 0,
   reporter: [["list"]],
   use: {
-    baseURL: `http://127.0.0.1:${PORT}/`,
+    baseURL: LIVE || `http://127.0.0.1:${PORT}/`,
     timezoneId: "Asia/Yerevan",
     locale: "en-US",
     // The service worker would cache index.html between tests; offline behaviour is covered separately.
@@ -22,7 +24,7 @@ module.exports = defineConfig({
     { name: "android-chrome", use: { ...devices["Pixel 7"] } },
     { name: "ios-safari", use: { ...devices["iPhone 14"] } },
   ],
-  webServer: {
+  webServer: LIVE ? undefined : {
     command: `npx http-server . -p ${PORT} -a 127.0.0.1 -c-1 --silent`,
     url: `http://127.0.0.1:${PORT}/index.html`,
     reuseExistingServer: !process.env.CI,
